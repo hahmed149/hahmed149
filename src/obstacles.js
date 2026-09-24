@@ -67,35 +67,53 @@ function tag(text) {
   return s;
 }
 
-// Builds all obstacles along the road. Each has a trigger distance `s` along the
-// road; passing it (or hitting it) knocks it over and reports it as overcome.
-export function buildObstacles(scene, road, plan) {
+function trophy(text) {
+  const g = new THREE.Group();
+  const gold = new THREE.MeshStandardMaterial({ color: '#e0b43c', metalness: 0.9, roughness: 0.25 });
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1, 1.4), new THREE.MeshStandardMaterial({ color: '#2f3237' }));
+  plinth.position.y = 0.5;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 0.7, 12), gold); stem.position.y = 1.35;
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.3, 1.1, 18), gold); cup.position.y = 2.25;
+  for (const x of [-0.85, 0.85]) {
+    const h = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.07, 8, 16), gold); h.position.set(x, 2.3, 0); h.rotation.y = Math.PI / 2; g.add(h);
+  }
+  g.add(plinth, stem, cup);
+  const t = tag(text); t.position.y = 3.6; t.scale.set(3.2, 0.9, 1); g.add(t);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+// Builds every obstacle on its role's road. Each has a distance `s` and a
+// lateral offset; driving through it (or into it) knocks it over.
+export function buildObstacles(scene, road, T) {
   const list = [];
-  plan.forEach((sec, si) => {
-    sec.items.forEach((item) => {
+  T.roles.forEach((r) => {
+    r.items.forEach((item, n) => {
+      const off = T.offset(r, item.s);
       if (item.type === 'gate') {
         const f = road.at(item.s);
         const gate = semesterGate(item.sem);
-        gate.position.copy(f.p); gate.rotation.y = f.heading + Math.PI;
+        gate.position.copy(f.p).addScaledVector(f.n, off); gate.rotation.y = f.heading + Math.PI;
         scene.add(gate);
-        const n = item.sem.courses.length;
-        const cf = road.at(item.s + 8);
-        item.sem.courses.forEach(([code, name], k) => {
+        const k = item.sem.courses.length;
+        const cs = item.s + 8, cf = road.at(cs);
+        item.sem.courses.forEach(([code, name], j) => {
           const c = cone();
-          const lateral = (k - (n - 1) / 2) * Math.min(1.7, (ROAD_W - 2) / Math.max(1, n - 1));
+          const lateral = off + (j - (k - 1) / 2) * Math.min(1.6, (ROAD_W - 2) / Math.max(1, k - 1));
           c.position.copy(cf.p).addScaledVector(cf.n, lateral);
           c.add(tag(code));
           scene.add(c);
-          list.push({ kind: 'course', mesh: c, s: item.s + 8, lateral, radius: 0.7, section: si, title: code, text: `${code}: ${name}`, term: item.sem.term });
+          list.push({ kind: 'course', mesh: c, s: cs, lateral, radius: 0.7, role: r.index, title: code, text: `${code}: ${name}`, term: item.sem.term });
         });
       } else {
         const f = road.at(item.s);
-        const b = barricade(item.label);
-        const lateral = item.index % 2 ? -2.3 : 2.3;
-        b.position.copy(f.p).addScaledVector(f.n, lateral);
-        b.rotation.y = f.heading + Math.PI;
-        scene.add(b);
-        list.push({ kind: 'feat', mesh: b, s: item.s, lateral, radius: 2.6, section: si, title: item.label, text: item.text });
+        const award = item.type === 'award';
+        const lateral = off + (award ? 0 : n % 2 ? -2.2 : 2.2);
+        const mesh = award ? trophy(item.label) : barricade(item.label);
+        mesh.position.copy(f.p).addScaledVector(f.n, lateral);
+        mesh.rotation.y = f.heading + Math.PI;
+        scene.add(mesh);
+        list.push({ kind: award ? 'award' : 'feat', mesh, s: item.s, lateral, radius: award ? 1.4 : 2.6, role: r.index, title: item.label, text: item.text });
       }
     });
   });
@@ -116,15 +134,13 @@ export function buildObstacles(scene, road, plan) {
     active.push(o);
   }
 
-  // car: { x, z, heading, speed, s, lateral }
+  // car: { x, z, heading, speed, s, prevS, lateral }
   function update(dt, car, t, onHit) {
     for (const o of list) {
-      if (o.hit) continue;
-      if (Math.abs(o.s - car.s) > 6) continue;
-      const dx = o.mesh.position.x - car.x, dz = o.mesh.position.z - car.z;
-      const dist = Math.hypot(dx, dz);
+      if (o.hit || Math.abs(o.s - car.s) > 8) continue;
+      const dist = Math.hypot(o.mesh.position.x - car.x, o.mesh.position.z - car.z);
       const direct = dist < o.radius + 1.2;
-      const passed = car.s > o.s + 0.5 && car.prevS <= o.s + 0.5 && Math.abs(car.lateral) < ROAD_W / 2 + 3;
+      const passed = car.s > o.s + 0.5 && car.prevS <= o.s + 0.5 && Math.abs(car.lateral - o.lateral) < ROAD_W / 2 + 1.5;
       if (direct || passed) { knock(o, car, direct); onHit(o, direct); }
     }
     for (let i = active.length - 1; i >= 0; i--) {
@@ -143,9 +159,8 @@ export function buildObstacles(scene, road, plan) {
         if (o.t > 5) { m.removeFromParent(); active.splice(i, 1); }
       }
     }
-    // beacons blink
     const on = Math.sin(t * 8) > 0;
-    for (const o of list) if (!o.hit && o.kind === 'feat') o.mesh.userData.lamp.emissiveIntensity = on ? 2.2 : 0.2;
+    for (const o of list) if (!o.hit && o.kind === 'feat' && Math.abs(o.s - car.s) < 300) o.mesh.userData.lamp.emissiveIntensity = on ? 2.2 : 0.2;
   }
 
   return { list, update };

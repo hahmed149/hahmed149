@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Hamza Ahmed — Staff Software Engineer</title>
+    <meta name="description" content="Hamza Ahmed, Staff Software Engineer and AI/ML solutions architect in Chicago. Drive through his career: OneImaging, National Accreditation Commission, Remaster, Rx Savings Solutions, Cerner, and Kansas State." />
+    <meta property="og:title" content="Hamza Ahmed — Staff Software Engineer" />
+    <meta property="og:description" content="Drive through my career, one highway exit at a time." />
+    <meta property="og:url" content="https://hahmed.dev/" />
+    <meta name="theme-color" content="#0b6b3a" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230b6b3a'/><rect x='5' y='5' width='54' height='54' rx='9' fill='none' stroke='%23f7f9f4' stroke-width='3'/><text x='32' y='43' font-family='sans-serif' font-weight='800' font-size='28' text-anchor='middle' fill='%23f7f9f4'>HA</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <header id="who">
+      <h1>Hamza Ahmed</h1>
+      <p>Staff Software Engineer</p>
+    </header>
+
+    <nav id="topbar" aria-label="Site">
+      <button id="open-list" class="btn">Read as a list</button>
+      <a id="contact" class="btn btn-solid" href="#">Email me</a>
+    </nav>
+
+    <p id="hint">Drive with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the arrow keys. Pull into an exit to read about it.</p>
+
+    <aside id="sign" hidden aria-live="polite">
+      <button id="sign-close" class="sign-close" aria-label="Close">×</button>
+      <p class="sign-exit"></p>
+      <h2></h2>
+      <p class="sign-role"></p>
+      <p class="sign-meta"></p>
+      <ul></ul>
+    </aside>
+
+    <footer id="hud">
+      <div id="exits" aria-label="Exits"></div>
+      <div class="hud-row">
+        <button id="next" class="btn btn-solid">Drive to next exit</button>
+        <span id="speed" aria-hidden="true">0 mph</span>
+      </div>
+    </footer>
+
+    <div id="pad" aria-hidden="true">
+      <button data-key="a" class="pad-btn">◀</button>
+      <button data-key="d" class="pad-btn">▶</button>
+      <span class="pad-gap"></span>
+      <button data-key="s" class="pad-btn">Brake</button>
+      <button data-key="w" class="pad-btn pad-gas">Gas</button>
+    </div>
+
+    <dialog id="list" aria-labelledby="list-title">
+      <div class="list-bar">
+        <p id="list-title">Résumé</p>
+        <button id="close-list" class="btn">Back to the road</button>
+      </div>
+      <div id="list-body"></div>
+    </dialog>
+
+    <noscript><p style="padding:24px">Hamza Ahmed, Staff Software Engineer. Email hahmed149@outlook.com.</p></noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

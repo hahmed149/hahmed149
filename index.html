@@ -4,29 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Hamza Ahmed — Staff Software Engineer</title>
-    <meta name="description" content="Hamza Ahmed is a Staff Software Engineer and AI/ML solutions architect in Chicago. Drive through his career from Kansas State to OneImaging and knock down every accomplishment on the way." />
-    <meta property="og:title" content="Hamza Ahmed — Staff Software Engineer" />
-    <meta property="og:description" content="Drive through my career. Every course and accomplishment is an obstacle on the road." />
+    <meta name="description" content="Hamza Ahmed, Staff Software Engineer and AI/ML solutions architect in Chicago. His career as a drivable git graph: I-70 is main, every overlapping job is a branch, every accomplishment a commit." />
+    <meta property="og:title" content="Hamza Ahmed — git log --graph" />
+    <meta property="og:description" content="Drive my career as a git graph. I-70 is main; every job is a branch; every accomplishment is a commit." />
     <meta property="og:url" content="https://hahmed.dev/" />
-    <meta name="theme-color" content="#0b6b3a" />
+    <meta name="theme-color" content="#03050b" />
     <link rel="canonical" href="https://hahmed.dev/" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230b6b3a'/><rect x='5' y='5' width='54' height='54' rx='9' fill='none' stroke='%23f7f9f4' stroke-width='3'/><text x='32' y='43' font-family='sans-serif' font-weight='800' font-size='28' text-anchor='middle' fill='%23f7f9f4'>HA</text></svg>" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%2303050b'/><path d='M20 12v40M20 22c0 10 24 6 24 18v12' stroke='%232ee6b6' stroke-width='5' fill='none' stroke-linecap='round'/><circle cx='20' cy='20' r='6' fill='%23dbe7ff'/><circle cx='44' cy='44' r='6' fill='%232ee6b6'/></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-nmJKenhd.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-ChRKXTmW.css">
+    <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/assets/index-CIIuOQTN.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Ci-Tzqxw.css">
   </head>
   <body>
     <canvas id="scene" aria-hidden="true"></canvas>
+    <p id="sr" class="sr-only" aria-live="polite"></p>
+    <div id="nogl" hidden><p>This browser can't show the 3D road, so here is the résumé as text.</p><button id="nogl-open" class="btn btn-solid">Open résumé</button></div>
+    <div id="fade" aria-hidden="true"></div>
 
     <div id="loading" role="status">
-      <p class="load-sign">Hamza Ahmed<span>Paving the road</span></p>
+      <p class="load"><span class="p">$</span> git clone hamza/career<span class="cursor"></span><br /><span class="dim">Receiving objects… building the highway</span></p>
     </div>
 
     <header id="who">
+      <p class="prompt"><span class="u">hamza</span><span class="dim">@</span><span class="h">hahmed.dev</span> <span class="dim">on</span> <span id="on-branch">main</span></p>
       <h1>Hamza Ahmed</h1>
-      <p>Staff Software Engineer, Chicago</p>
+      <p class="role">Staff Software Engineer · Chicago</p>
     </header>
 
     <nav id="topbar" aria-label="Site">
@@ -36,55 +40,73 @@
       <a id="contact" class="btn btn-solid" href="#">Email me</a>
     </nav>
 
-    <div id="scores" aria-live="polite">
-      <p><span class="score-label">Accomplishments</span><span id="count-feat" class="score-num">0 / 0</span></p>
-      <p><span class="score-label">Courses</span><span id="count-course" class="score-num">0 / 0</span></p>
-    </div>
+    <aside id="stats">
+      <canvas id="graph" aria-hidden="true"></canvas>
+      <dl>
+        <div><dt>commits</dt><dd id="c-commit">0/0</dd></div>
+        <div><dt>courses</dt><dd id="c-course">0/0</dd></div>
+        <div><dt>releases</dt><dd id="c-release">0/0</dd></div>
+      </dl>
+    </aside>
 
-    <canvas id="minimap" aria-hidden="true"></canvas>
-
-    <p id="hint">Drive with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows. The road is my timeline: jobs that overlapped branch off side by side, so pick a road. Smash barricades and cones to overcome them. <kbd>N</kbd> drives to the next job.</p>
-
-    <div id="feed" aria-live="polite"></div>
+    <p id="hint">
+      <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to drive. I-70 is <code>main</code>; jobs that overlapped fork off as branches, so pick a road.
+      Drive through rings to commit. <kbd>N</kbd> next branch · <kbd>/</kbd> terminal
+    </p>
 
     <aside id="card" hidden>
-      <p class="card-years"></p>
+      <p class="card-cmd"></p>
       <h2></h2>
       <p class="card-role"></p>
-      <p class="card-place"></p>
+      <p class="card-meta"></p>
       <p class="card-blurb"></p>
     </aside>
 
+    <section id="terminal" aria-label="Terminal">
+      <div id="term-log"></div>
+      <form id="cmd-form" autocomplete="off">
+        <label for="cmd" class="p">$</label>
+        <input id="cmd" type="text" spellcheck="false" placeholder="type help" aria-label="Terminal command" />
+      </form>
+    </section>
+
     <footer id="hud">
-      <nav id="stops" aria-label="Stops"></nav>
+      <nav id="branches" aria-label="Branches"></nav>
       <div class="hud-row">
-        <button id="next" class="btn btn-solid">Drive to next job</button>
+        <button id="next" class="btn btn-solid">Next branch</button>
         <button id="sound" class="btn" aria-pressed="false">Sound off</button>
-        <p class="speedo"><span id="speed">0</span> mph</p>
+        <p class="speedo"><span id="speed">0</span> km/h</p>
       </div>
     </footer>
 
     <div id="pad" aria-hidden="true">
-      <button data-key="a" class="pad-btn">◀</button>
-      <button data-key="d" class="pad-btn">▶</button>
-      <button data-key="s" class="pad-btn">Brake</button>
-      <button data-key="w" class="pad-btn pad-gas">Gas</button>
+      <button data-key="a" class="pad-btn" tabindex="-1">◀</button>
+      <button data-key="d" class="pad-btn" tabindex="-1">▶</button>
+      <button data-key="s" class="pad-btn" tabindex="-1">Brake</button>
+      <button data-key="w" class="pad-btn pad-gas" tabindex="-1">Gas</button>
+    </div>
+
+    <div id="cutscene" hidden>
+      <p id="caption" hidden></p>
+      <button id="skip" class="btn">Skip flight</button>
     </div>
 
     <aside id="journal" hidden aria-labelledby="journal-title">
-      <div class="panel-bar"><h2 id="journal-title">Journal</h2><button id="journal-close" class="btn">Close</button></div>
-      <p class="panel-note">Everything on the road. Items turn green as you knock them down.</p>
+      <div class="panel-bar"><h2 id="journal-title">git log --all</h2><button id="journal-close" class="btn">Close</button></div>
+      <p class="panel-note">Every commit on every branch. Filled dots are ones you've driven through.</p>
       <div id="journal-body"></div>
     </aside>
 
     <div id="finish" hidden role="dialog" aria-labelledby="finish-title">
       <div class="finish-card">
-        <h2 id="finish-title">You made it to Chicago</h2>
+        <p class="card-cmd">$ git merge --all</p>
+        <h2 id="finish-title">Every branch merged in Chicago</h2>
         <p id="finish-count"></p>
         <p>Thanks for driving. I'm always up for talking about AI agents, healthcare software, and hard engineering problems.</p>
         <div class="finish-actions">
           <a class="btn btn-solid" href="mailto:hahmed149@outlook.com">Email me</a>
           <a class="btn" href="https://www.linkedin.com/in/hahmed149/" rel="me noopener" target="_blank">LinkedIn</a>
+          <button id="finish-journal" class="btn">See what I missed</button>
           <button id="finish-close" class="btn">Keep driving</button>
         </div>
       </div>
@@ -95,6 +117,6 @@
       <div id="list-body"></div>
     </dialog>
 
-    <noscript><p style="padding:24px">Hamza Ahmed, Staff Software Engineer in Chicago. Email hahmed149@outlook.com.</p></noscript>
+    <noscript><p style="padding:24px;color:#fff">Hamza Ahmed, Staff Software Engineer in Chicago. Email hahmed149@outlook.com.</p></noscript>
   </body>
 </html>

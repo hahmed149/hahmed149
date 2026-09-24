@@ -157,3 +157,61 @@ function shade(hex, amt) {
   const f = (v) => Math.max(0, Math.min(255, v + amt));
   return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
 }
+
+// Interstate route shield (public-domain MUTCD design)
+export function shield(num = '70', w = 256) {
+  const [c, g] = canvas(w, w);
+  const path = (inset) => {
+    const s = w, i = inset;
+    g.beginPath();
+    g.moveTo(s * 0.08 + i, s * 0.1 + i);
+    g.quadraticCurveTo(s * 0.5, s * 0.02 + i, s * 0.92 - i, s * 0.1 + i);
+    g.bezierCurveTo(s * 0.98 - i, s * 0.55, s * 0.8, s * 0.82, s * 0.5, s * 0.96 - i);
+    g.bezierCurveTo(s * 0.2, s * 0.82, s * 0.02 + i, s * 0.55, s * 0.08 + i, s * 0.1 + i);
+    g.closePath();
+  };
+  g.fillStyle = '#ffffff'; path(0); g.fill();
+  g.save(); path(w * 0.035); g.clip();
+  g.fillStyle = '#1f4ea0'; g.fillRect(0, 0, w, w);
+  g.fillStyle = '#c8202f'; g.fillRect(0, 0, w, w * 0.3);
+  g.fillStyle = '#ffffff'; g.fillRect(0, w * 0.3, w, w * 0.025);
+  g.restore();
+  g.fillStyle = '#ffffff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `800 ${w * 0.1}px ${FONT}`; g.fillText('INTERSTATE', w / 2, w * 0.19);
+  g.font = `800 ${w * 0.44}px ${FONT}`; g.fillText(num, w / 2, w * 0.6);
+  const t = toTexture(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// Tiling grass/soil detail, multiplied over terrain vertex colours
+export function groundDetail() {
+  const [c, g] = canvas(256, 256);
+  g.fillStyle = '#d8d8d8'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 16000; i++) {
+    const v = 150 + rand() * 105;
+    g.fillStyle = `rgba(${v},${v},${v},0.6)`;
+    const x = rand() * 256, y = rand() * 256;
+    g.fillRect(x, y, 1 + rand() * 1.5, 2 + rand() * 3);
+  }
+  for (let i = 0; i < 40; i++) {
+    const r = 8 + rand() * 30;
+    const grad = g.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, 'rgba(120,120,120,0.25)'); grad.addColorStop(1, 'rgba(120,120,120,0)');
+    g.save(); g.translate(rand() * 256, rand() * 256); g.fillStyle = grad; g.fillRect(-r, -r, r * 2, r * 2); g.restore();
+  }
+  return toTexture(c);
+}
+
+export function cloudPuff() {
+  const [c, g] = canvas(256, 256);
+  for (let i = 0; i < 14; i++) {
+    const x = 60 + rand() * 136, y = 90 + rand() * 70, r = 30 + rand() * 50;
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)'); grad.addColorStop(0.6, 'rgba(250,252,255,0.5)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
+  }
+  const t = toTexture(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}

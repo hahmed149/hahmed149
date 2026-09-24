@@ -16,24 +16,24 @@ export const person = {
 // Kansas State coursework, by semester. Grades intentionally omitted.
 export const semesters = [
   { term: 'Fall 2014', date: '2014-08', courses: [
-    ['ECE 210', 'Intro to Electrical Engineering'], ['ENGL 100', 'Expository Writing'], ['MATH 220', 'Calculus 1'],
-    ['MC 110', 'Mass Communication in Society'], ['CIS 101', 'Intro to Computing Systems'], ['CIS 104', 'Intro to Word Processing'],
+    ['ECE 210', 'Intro to Electrical Engineering'], ['ENGL 100', 'Expository Writing 1'], ['MATH 220', 'Analytic Geometry & Calculus 1'],
+    ['MC 110', 'Mass Communication in Society'], ['CIS 101', 'Intro to Computing Systems'], ['CIS 104', 'Intro to Word Processing Applications'],
   ] },
   { term: 'Spring 2015', date: '2015-01', courses: [
     ['CHM 210', 'Chemistry 1'], ['ECE 115', 'New Student Design Project'], ['ECE 241', 'Intro to Computer Engineering'],
-    ['ECON 110', 'Macroeconomics'], ['MATH 221', 'Calculus 2'],
+    ['ECON 110', 'Principles of Macroeconomics'], ['MATH 221', 'Analytic Geometry & Calculus 2'],
   ] },
   { term: 'Summer 2015', date: '2015-06', courses: [['PHYS 213', 'Engineering Physics 1']] },
   { term: 'Fall 2015', date: '2015-08', courses: [
     ['CIS 200', 'Programming Fundamentals'], ['ECE 410', 'Circuit Theory 1'], ['GEOL 100', 'Earth in Action'],
-    ['MATH 240', 'Differential Equations'],
+    ['MATH 240', 'Elementary Differential Equations'],
   ] },
   { term: 'Spring 2016', date: '2016-01', courses: [
     ['CIS 300', 'Data & Program Structures'], ['ECE 441', 'Design of Digital Systems'], ['ECE 511', 'Circuit Theory 2'],
-    ['STAT 510', 'Probability & Statistics'], ['COMM 106', 'Public Speaking'],
+    ['STAT 510', 'Introductory Probability & Statistics 1'], ['COMM 106', 'Public Speaking 1'],
   ] },
   { term: 'Fall 2016', date: '2016-08', honors: true, courses: [
-    ['ECE 431', 'Microcontrollers'], ['ECE 525', 'Electronics 1'], ['ENTRP 340', 'Entrepreneurship'],
+    ['ECE 431', 'Microcontrollers'], ['ECE 525', 'Electronics 1'], ['ENTRP 340', 'Intro to Entrepreneurship'],
     ['MANGT 420', 'Management Concepts'],
   ] },
   { term: 'Spring 2017', date: '2017-01', honors: true, courses: [
@@ -45,13 +45,13 @@ export const semesters = [
     ['ENGL 415', 'Written Communication for Engineers'],
   ] },
   { term: 'Spring 2018', date: '2018-01', honors: true, courses: [
-    ['CIS 520', 'Operating Systems'], ['ECE 512', 'Linear Systems'], ['ECE 590', 'Senior Design 1'],
+    ['CIS 520', 'Operating Systems 1'], ['ECE 512', 'Linear Systems'], ['ECE 590', 'Senior Design Experience 1'],
     ['ECE 631', 'Microcomputer System Design'], ['ECE 645', 'Digital Electronics'], ['COMM 332', 'Communication & Technology'],
   ] },
   { term: 'Summer 2018', date: '2018-06', courses: [['ECE 690', 'Problems in Electrical Engineering']] },
   { term: 'Fall 2018', date: '2018-08', courses: [
     ['ARCH 301', 'Appreciation of Architecture'], ['CIS 115', 'Intro to Computing Science'], ['CIS 301', 'Logical Foundations of Programming'],
-    ['ECE 557', 'Electromagnetic Theory'], ['ECE 591', 'Senior Design 2'],
+    ['ECE 557', 'Electromagnetic Theory 1'], ['ECE 591', 'Senior Design Experience 2'],
   ] },
 ];
 
@@ -70,7 +70,7 @@ export const sections = [
     obstacles: [
       ['Hack K-State', 'Won Hack K-State (2017).', '2017-02'],
       ['IEEE president', 'President of the IEEE student chapter (2018).', '2018-01'],
-      ['Graduated', 'Graduated with a B.S. in Computer Engineering and a minor in Computer Science.', '2018-11'],
+      ['Graduated', 'Graduated with a B.S. in Computer Engineering and a minor in Computer Science (December 2018).', '2018-12'],
     ],
   },
   {
@@ -79,11 +79,11 @@ export const sections = [
     title: 'IT Specialist, then IT Support Manager',
     blurb: 'Ran IT for the student newspaper while in school.',
     obstacles: [
-      ['100 Macs', 'Kept a network of about 100 Mac workstations running for 65+ faculty, staff, and students.', '2016-02'],
+      ['100 Macs', 'Helped maintain a network of about 100 Mac workstations supporting 65+ faculty, staff, and students.', '2016-02'],
       ['kstatecollegian.com', 'Redesigned and ran kstatecollegian.com, including traffic management.', '2016-08'],
-      ['Promoted', 'Promoted to IT Support Manager.', '2017-03'],
-      ['Tech of the Year', 'Named Tech of the Year (2017).', '2017-06'],
-      ['Hired a team', 'Interviewed, hired, and led the IT support staff.', '2017-11'],
+      ['Promoted', 'Promoted from IT Specialist to IT Support Manager.', '2017-03'],
+      ['Tech of the Year', 'Tech of the Year Award for outstanding technical performance (2017).', '2017-06', 'award'],
+      ['Hired a team', 'Interviewed and hired technical staff, oversaw the IT support team, and led its staff meetings.', '2017-11'],
     ],
   },
   {
@@ -107,9 +107,9 @@ export const sections = [
       ['Command Center', 'Planned and built the CareAware Command Center Dashboard for real-time hospital operations.'],
       ['ML census model', 'Integrated an inpatient-census prediction model with the ML team to improve bed utilization.'],
       ['New Relic', 'Added New Relic monitoring and tracing, cutting time to resolve production issues.'],
-      ['K8s + Spinnaker', 'Shipped cloud services as Docker containers through Kubernetes and Spinnaker pipelines.'],
+      ['K8s + Spinnaker', 'Fixed critical bugs in internal orchestration tools and deployed services as Docker containers through Spinnaker and Kubernetes.'],
       ['Mentored 8', 'Mentored 8 engineers through DevAcademy, Cerner’s software boot camp.'],
-      ['Night on the Town', 'Won the Night on the Town award for team collaboration.', '2019-10', 'award'],
+      ['Night on the Town', 'Night on the Town Award for excellence in team collaboration (2019).', '2019-06', 'award'],
     ],
   },
   {
@@ -123,21 +123,23 @@ export const sections = [
       ['S3 + CloudFront CMS', 'Built a content management system on AWS S3 and CloudFront.'],
       ['Terraform', 'Introduced Terraform so application stacks deploy the same way in every environment.'],
       ['Azure AD SSO', 'Integrated Azure AD single sign-on.'],
-      ['Hackathon 2nd', 'Took 2nd place at the RxSS Hackathon with prescriber fax automation.', '2022-04', 'award'],
-      ['Wolverine Award', 'Won the peer-nominated Wolverine Award.', '2022-07', 'award'],
-      ['Promoted', 'Promoted to Senior Software Engineer and Technical Lead.', '2022-09'],
+      ['Hackathon 2nd', 'RxSS Hackathon (2022): prescriber fax automation. 2nd place.', '2022-04', 'award'],
+      ['Wolverine Award', 'Wolverine Award, peer-nominated for going the extra mile (2022).', '2022-07', 'award'],
+      ['Promoted', 'Promoted to Senior Software Engineer and Technical Lead (September 2022).', '2022-09'],
       ['Private Label Mgr', 'Shipped Private Label Manager, saving an estimated 2,000 engineering hours.'],
       ['Unified Auth', 'Architected unified auth on Auth0 across the Member Portal, AdminRx, and mobile.'],
       ['MFA rollout', 'Designed MFA enrollment with feature-flagged rollout by user group.'],
       ['Zero downtime', 'Led a zero-downtime migration off legacy auth, with self-service password reset.'],
-      ['FLL mentor', 'Mentored the ICJC Mavericks First Lego League team.', '2023-02', 'award'],
+      ['FLL mentor', 'Mentored the ICJC Mavericks First Lego League team (2023).', '2023-02', 'award'],
       ['Dev Academy', 'Founded and led Dev Academy, training new engineers in PHP and JavaScript.'],
       ['HackMidwest 3rd', 'HackMidwest 2023: CareCue, a chatbot for caregivers. 3rd place.', '2023-10', 'award'],
       ['GitLab move', 'Moved Bitbucket to GitLab and rebuilt CI/CD and Terraform to cut deploy times.'],
       ['Vue 2 → 3', 'Led the Vue 2 to Vue 3 modernization.'],
-      ['Spotlight Award', 'Employee Spotlight Award for a technical talk at the CoverMyMeds conference.', '2024-04', 'award'],
+      ['Spotlight Award', 'Employee Spotlight Award for a technical presentation at the CoverMyMeds conference.', null, 'award'],
       ['HackMidwest 1st', 'HackMidwest 2024: Taini, a voice AI accountability coach. 1st place, Best in AI from AWS.', '2024-10', 'award'],
       ['Demo mode', 'Built a MirageJS demo mode so sales could run custom demos.'],
+      ['Release UI', 'Automated releases with a drag-and-drop UI so non-engineers could manage client customizations.'],
+      ['Translations', 'Built a serverless app for centralized translation management across products.'],
     ],
   },
   {
@@ -168,21 +170,21 @@ export const sections = [
   },
   {
     id: 'nac', slot: 2, landmark: 'capitol', start: '2025-04', end: '2025-12', years: '2025',
-    company: 'National Accreditation Commission', place: 'Remote, for the State of Arkansas',
-    title: 'Interim Chief Technology Officer',
-    blurb: 'An AI compliance platform for workforce Pell grants and institution accreditation.',
+    company: 'National Accreditation Commission', place: 'Remote',
+    title: 'Interim CTO / Lead Engineering Architect',
+    blurb: 'A state-level AI Hub for workforce Pell grant distribution and non-credit institution accreditation.',
     obstacles: [
       ['Graph RAG', 'Built hybrid Graph RAG verification that cut manual review time by 75%.'],
       ['90% accuracy', 'Reached 90% compliance-detection accuracy.'],
       ['15-min checks', 'Designed event-driven serverless processing for 15-minute asynchronous compliance checks.'],
-      ['Governor’s office', 'Worked with the Chief Data Officer for the Office of the Governor of Arkansas.'],
+      ['Governor’s office', 'Worked directly with the Chief Data Officer for the Office of Arkansas Governor Sarah Huckabee Sanders.'],
       ['OpenAI HQ', 'Presented at OpenAI × GitLab Foundation Demo Day at OpenAI headquarters in San Francisco.', null, 'award'],
       ['Mentored 4', 'Mentored 4 George Washington University master’s students in AI and RAG.'],
     ],
   },
   {
     id: 'addi', slot: -2, landmark: 'billboards', start: '2025-10', end: '2026-06', years: '2025–2026',
-    company: 'Addi', place: 'Kansas City, remote',
+    company: 'Addi', place: 'Kansas City metro, remote',
     title: 'Senior Software Engineer (contract)',
     blurb: 'Tools for small businesses to manage and publish AI-generated ad campaigns.',
     obstacles: [

@@ -137,7 +137,7 @@ export function buildLandmark(kind, animate) {
       for (let i = 0; i < 3; i++) g.add(cyl(0.3, 0.3, 3, std({ color: '#b5693a' }), 20.5 + i * 1.5, 4, 10, 8));
       const fence = std({ color: '#9aa0a3', metalness: 0.6, transparent: true, opacity: 0.55 });
       g.add(box(58, 2.4, 0.1, fence, 0, 0, 19), box(58, 2.4, 0.1, fence, 0, 0, -19));
-      const s = signBoard(['Fluxpilot', 'Battery storage, sized in minutes'], 11, 2.8, { bg: '#0d4f6c' }); s.position.set(-16, 3, 21); g.add(s);
+      const s = signBoard(['Fluxpilot', 'Battery energy storage'], 11, 2.8, { bg: '#0d4f6c' }); s.position.set(-16, 3, 21); g.add(s);
       const white = std({ color: '#f1f3f4', roughness: 0.5 });
       [[-18, -42], [4, -48], [26, -40]].forEach(([x, z], i) => {
         g.add(cyl(0.9, 1.6, 42, white, x, 0, z, 12));

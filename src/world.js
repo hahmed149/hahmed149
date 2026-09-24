@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { asphalt, facade, label } from './textures.js';
+import { asphalt, facade, label, shield, groundDetail, cloudPuff } from './textures.js';
 
 export const ROAD_W = 10;
 export const LANE_GAP = 16;       // distance between parallel roads
 const MONTH = 30;                 // road units per month
-const FLAT = 120;                 // flat corridor half-width around the centre line
+const FLAT = 150;                 // flat corridor half-width around the centre line
 
 // ---------- noise ----------
 function hash(x, z) {
@@ -168,6 +168,8 @@ export function buildWorld(scene, road, T) {
     dry: new THREE.Color('#a79a62'), city: new THREE.Color('#8e8f86'),
   };
   const heightAt = (x, z, d) => fbm(x * 0.005, z * 0.005) * 80 * smooth(d, FLAT, FLAT + 180);
+  const detail = groundDetail();
+  detail.repeat.set(W / 9, D / 9);
   const tmp = new THREE.Color();
   for (let i = 0; i < tp.count; i++) {
     const x = tp.getX(i), z = tp.getZ(i);
@@ -183,7 +185,7 @@ export function buildWorld(scene, road, T) {
   }
   tg.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   tg.computeVertexNormals();
-  const terrain = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+  const terrain = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 1 }));
   terrain.receiveShadow = true;
   scene.add(terrain);
 
@@ -252,6 +254,26 @@ export function buildWorld(scene, road, T) {
     scene.add(g);
   }
 
+  // I-70 reassurance markers along the main road
+  const shieldT = shield('70');
+  for (let s = 140; s < T.finishS; s += 420) {
+    const side = T.activeAt(s).some((r) => r.slot < 0) ? 1 : -1;
+    const f = road.at(s);
+    const m70 = routeMarker(shieldT);
+    m70.position.copy(f.p).addScaledVector(f.n, side * (ROAD_W / 2 + 2.5));
+    m70.rotation.y = f.heading + Math.PI;
+    scene.add(m70);
+  }
+  // Clouds
+  const puff = cloudPuff();
+  for (let i = 0; i < 70; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: puff, transparent: true, depthWrite: false, fog: false, opacity: 0.85 }));
+    sp.position.set(box.min.x - 400 + rnd(i, 31) * (W - 200), 240 + rnd(i, 32) * 180, box.min.z - 400 + rnd(i, 33) * (D - 200));
+    const sc = 160 + rnd(i, 34) * 220;
+    sp.scale.set(sc, sc * 0.55, 1);
+    scene.add(sp);
+  }
+
   // Keep-out zones for scenery around landmarks
   const keepOut = [...T.roles, T.finish].map((r) => {
     const f = road.at(r.landmarkS);
@@ -275,8 +297,8 @@ export function buildWorld(scene, road, T) {
         const k = Math.floor(s * 7 + side * 3 + zi * 101);
         if (rnd(k, 1) < 0.25) continue;
         const f = road.at(s);
-        const off = side * (28 + rnd(k, 2) * 80);
-        if (!clearOfRoads(s, off)) continue;
+        const off = side * (34 + rnd(k, 2) * 80);
+        if (!clearOfRoads(s, off, 26)) continue;
         const pos = f.p.clone().addScaledVector(f.n, off);
         if (keepOut.some((z) => z.p.distanceTo(pos) < z.r)) continue;
         if (near(pos.x, pos.z).d < 22) continue;
@@ -356,7 +378,26 @@ function gantry(lines, tabText, span = ROAD_W + 5) {
   const tab = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1, 0.2), [back, back, back, back, tabFace, back]);
   tab.position.set(signW / 2 - 2.3, 7.2 + signH + 0.1, 0.45);
   g.add(board, tab);
-  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshBasicMaterial({ map: shieldTex(), transparent: true, toneMapped: false }));
+  sh.position.set(-signW / 2 + 1.1, 7.2 + signH + 0.55, 0.52);
+  g.add(sh);
+  g.traverse((o) => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
+  return g;
+}
+
+let _shield;
+const shieldTex = () => (_shield ??= shield('70'));
+
+function routeMarker(tex) {
+  const g = new THREE.Group();
+  const metal = new THREE.MeshStandardMaterial({ color: '#9aa1a8', metalness: 0.6, roughness: 0.45 });
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4, 6), metal);
+  pole.position.y = 2;
+  const east = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.6), new THREE.MeshBasicMaterial({ map: label(['EAST'], { w: 300, h: 100, bg: '#ffffff', fg: '#111111', border: false }), toneMapped: false }));
+  east.position.set(0, 4.5, 0.06);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }));
+  sh.position.set(0, 3.2, 0.06);
+  g.add(pole, east, sh);
   return g;
 }
 

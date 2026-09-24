@@ -9,8 +9,8 @@ export const person = {
   linkedin: 'https://www.linkedin.com/in/hahmed149/',
   github: 'https://github.com/hahmed149',
   summary:
-    'I build enterprise AI platforms and healthcare software: HIPAA-scoped AI agents on AWS Bedrock, ' +
-    'scheduling integrations, and the testing and migration foundations that let teams ship safely.',
+    'Staff Software Engineer with 7+ years architecting enterprise AI-powered platforms and healthcare solutions: ' +
+    'HIPAA-scoped AI agents on AWS Bedrock, RIS integrations, and the testing and migration foundations behind a medical imaging platform.',
 };
 
 // Kansas State coursework, by semester. Grades intentionally omitted.
@@ -77,7 +77,7 @@ export const sections = [
     id: 'collegian', slot: 1, landmark: 'press', start: '2015-11', end: '2018-12', years: '2015–2018',
     company: 'Collegian Media Group', place: 'Manhattan, KS',
     title: 'IT Specialist, then IT Support Manager',
-    blurb: 'Ran IT for the student newspaper while in school.',
+    blurb: 'IT Specialist, then IT Support Manager, in Manhattan, KS, while at K-State.',
     obstacles: [
       ['100 Macs', 'Helped maintain a network of about 100 Mac workstations supporting 65+ faculty, staff, and students.', '2016-02'],
       ['kstatecollegian.com', 'Redesigned and ran kstatecollegian.com, including traffic management.', '2016-08'],
@@ -130,13 +130,10 @@ export const sections = [
       ['Unified Auth', 'Architected unified auth on Auth0 across the Member Portal, AdminRx, and mobile.'],
       ['MFA rollout', 'Designed MFA enrollment with feature-flagged rollout by user group.'],
       ['Zero downtime', 'Led a zero-downtime migration off legacy auth, with self-service password reset.'],
-      ['FLL mentor', 'Mentored the ICJC Mavericks First Lego League team (2023).', '2023-02', 'award'],
       ['Dev Academy', 'Founded and led Dev Academy, training new engineers in PHP and JavaScript.'],
-      ['HackMidwest 3rd', 'HackMidwest 2023: CareCue, a chatbot for caregivers. 3rd place.', '2023-10', 'award'],
       ['GitLab move', 'Moved Bitbucket to GitLab and rebuilt CI/CD and Terraform to cut deploy times.'],
       ['Vue 2 → 3', 'Led the Vue 2 to Vue 3 modernization.'],
       ['Spotlight Award', 'Employee Spotlight Award for a technical presentation at the CoverMyMeds conference.', null, 'award'],
-      ['HackMidwest 1st', 'HackMidwest 2024: Taini, a voice AI accountability coach. 1st place, Best in AI from AWS.', '2024-10', 'award'],
       ['Demo mode', 'Built a MirageJS demo mode so sales could run custom demos.'],
       ['Release UI', 'Automated releases with a drag-and-drop UI so non-engineers could manage client customizations.'],
       ['Translations', 'Built a serverless app for centralized translation management across products.'],
@@ -177,7 +174,7 @@ export const sections = [
       ['Graph RAG', 'Built hybrid Graph RAG verification that cut manual review time by 75%.'],
       ['90% accuracy', 'Reached 90% compliance-detection accuracy.'],
       ['15-min checks', 'Designed event-driven serverless processing for 15-minute asynchronous compliance checks.'],
-      ['Governor’s office', 'Worked directly with the Chief Data Officer for the Office of Arkansas Governor Sarah Huckabee Sanders.'],
+      ['Governor’s office', 'Worked directly with the Chief Data Officer for the Office of Governor Sarah Huckabee Sanders.'],
       ['OpenAI HQ', 'Presented at OpenAI × GitLab Foundation Demo Day at OpenAI headquarters in San Francisco.', null, 'award'],
       ['Mentored 4', 'Mentored 4 George Washington University master’s students in AI and RAG.'],
     ],
@@ -197,7 +194,7 @@ export const sections = [
   },
   {
     id: 'oneimaging', slot: 0, landmark: 'imaging', start: '2026-01', end: 'now', years: '2026–now',
-    company: 'OneImaging', place: 'Remote',
+    company: 'OneImaging', place: 'Remote (HQ in Miami, FL)',
     title: 'Staff Software Engineer',
     blurb: 'Patient imaging scheduling and care coordination.',
     obstacles: [
@@ -214,6 +211,13 @@ export const sections = [
       ['Agentic harness', 'Building an agentic development harness with automated end-to-end checks.'],
     ],
   },
+];
+
+// Hackathons and community work: not tied to an employer, placed on main by year.
+export const community = [
+  ['HackMidwest 3rd', 'HackMidwest 2023: CareCue, a healthcare AI chatbot for caregivers. 3rd place.', '2023-10'],
+  ['FLL mentor', 'Mentor, First Lego League (2023), ICJC Mavericks.', '2023-03'],
+  ['HackMidwest 1st', 'HackMidwest 2024: Taini, a voice AI accountability coach. 1st place, Best in AI from AWS.', '2024-10'],
 ];
 
 // The road ends in Chicago, where every branch merges.

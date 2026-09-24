@@ -5,7 +5,7 @@ import { FONT } from './textures.js';
 export function buildCar() {
   const group = new THREE.Group();
   const silver = new THREE.MeshPhysicalMaterial({ color: '#b9c0c7', metalness: 0.85, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.12 });
-  const teal = new THREE.MeshPhysicalMaterial({ color: '#00c2b0', metalness: 0.3, roughness: 0.35, clearcoat: 1 });
+  const teal = new THREE.MeshPhysicalMaterial({ color: '#00c2b0', metalness: 0.3, roughness: 0.35, clearcoat: 1, emissive: '#00c2b0', emissiveIntensity: 0.9 });
   const carbon = new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.45, metalness: 0.3 });
   const black = new THREE.MeshStandardMaterial({ color: '#0d0e10', roughness: 0.7 });
   const tyreM = new THREE.MeshStandardMaterial({ color: '#141414', roughness: 0.9 });

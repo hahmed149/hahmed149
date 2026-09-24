@@ -14,6 +14,8 @@ export function createAudio() {
   }
   return {
     get on() { return on; },
+    pause() { if (ctx) ctx.suspend(); },
+    resume() { if (ctx && on) ctx.resume(); },
     toggle() {
       if (!ctx) init();
       on = !on;

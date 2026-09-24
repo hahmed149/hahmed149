@@ -1,166 +1,182 @@
 import * as THREE from 'three';
-import { label, stripes } from './textures.js';
-import { ROAD_W } from './world.js';
+import { ROAD_W, neonSign } from './world.js';
+import { BRANCH, GOLD, hash7 } from './theme.js';
 
-const GRAVITY = 26;
-const orange = new THREE.MeshStandardMaterial({ color: '#f26a1b', roughness: 0.55 });
-const white = new THREE.MeshStandardMaterial({ color: '#f5f5f0', roughness: 0.4, emissive: '#ffffff', emissiveIntensity: 0.08 });
-const black = new THREE.MeshStandardMaterial({ color: '#1a1a1a', roughness: 0.8 });
-const coneG = new THREE.CylinderGeometry(0.07, 0.34, 1.05, 16, 1, true);
-const bandG = new THREE.CylinderGeometry(0.16, 0.22, 0.14, 16, 1, true);
-const baseG = new THREE.BoxGeometry(0.85, 0.07, 0.85);
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
 
-function cone() {
-  const g = new THREE.Group();
-  const c = new THREE.Mesh(coneG, orange); c.position.y = 0.6;
-  const b1 = new THREE.Mesh(bandG, white); b1.position.y = 0.72;
-  const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.29, 0.12, 16, 1, true), white); b2.position.y = 0.46;
-  const base = new THREE.Mesh(baseG, black); base.position.y = 0.035;
-  g.add(c, b1, b2, base);
-  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return g;
-}
-
-const railMat = new THREE.MeshStandardMaterial({ map: stripes(), roughness: 0.5 });
-function barricade(text) {
-  const g = new THREE.Group();
-  const legM = new THREE.MeshStandardMaterial({ color: '#e8e8e2', roughness: 0.6 });
-  for (const x of [-2.1, 2.1]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.9, 0.14), legM); leg.position.set(x, 0.95, 0); g.add(leg);
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 1.3), black); foot.position.set(x, 0.06, 0); g.add(foot);
-  }
-  for (const y of [0.55, 1.1, 1.65]) {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.3, 0.06), railMat); r.position.set(0, y, 0.08); g.add(r);
-  }
-  const back = new THREE.MeshStandardMaterial({ color: '#d45a14' });
-  const face = new THREE.MeshBasicMaterial({ map: label([text], { w: 600, h: 150, bg: '#f26a1b', fg: '#141414', border: true }), toneMapped: false });
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.05, 0.06), [back, back, back, back, face, back]);
-  plate.position.set(0, 2.45, 0.1);
-  g.add(plate);
-  // flashing beacons
-  const lampM = new THREE.MeshStandardMaterial({ color: '#ffb300', emissive: '#ff9c00', emissiveIntensity: 1 });
-  for (const x of [-2.1, 2.1]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.2, 10), lampM); l.position.set(x, 2.0, 0); g.add(l); }
-  g.userData.lamp = lampM;
-  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return g;
-}
-
-function semesterGate(sem) {
-  const g = new THREE.Group();
-  const purple = new THREE.MeshStandardMaterial({ color: '#512888', roughness: 0.6 });
-  const span = ROAD_W + 4;
-  for (const x of [-span / 2, span / 2]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6.4, 0.5), purple); p.position.set(x, 3.2, 0); g.add(p); }
-  const lines = sem.honors ? [sem.term, 'Semester honors'] : [sem.term];
-  const face = new THREE.MeshBasicMaterial({ map: label(lines, { w: 900, h: 150, bg: '#512888', fg: '#ffffff' }), toneMapped: false });
-  const banner = new THREE.Mesh(new THREE.BoxGeometry(span, 1.5, 0.15), [purple, purple, purple, purple, face, purple]);
-  banner.position.y = 6.2;
-  g.add(banner);
-  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  return g;
-}
-
-function tag(text) {
-  const mat = new THREE.SpriteMaterial({ map: label([text], { w: 256, h: 72, bg: 'rgba(20,20,24,0.82)', fg: '#ffffff', border: false }), depthWrite: false });
-  const s = new THREE.Sprite(mat);
-  s.scale.set(2.2, 0.62, 1);
-  s.position.y = 1.8;
+function tagSprite(hash, text, color, scale = 1) {
+  const c = document.createElement('canvas');
+  const g = c.getContext('2d');
+  const font = `700 40px ${MONO}`;
+  g.font = font;
+  const w = Math.ceil(g.measureText(`${hash}  ${text}`).width) + 48;
+  c.width = w; c.height = 72;
+  g.fillStyle = 'rgba(6,10,20,0.8)';
+  g.beginPath(); g.roundRect(0, 0, w, 72, 14); g.fill();
+  g.strokeStyle = color; g.lineWidth = 3; g.beginPath(); g.roundRect(2, 2, w - 4, 68, 12); g.stroke();
+  g.font = font; g.textBaseline = 'middle';
+  g.fillStyle = color; g.fillText(hash, 24, 38);
+  g.fillStyle = '#eef3ff'; g.fillText(text, 24 + g.measureText(`${hash}  `).width, 38);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, toneMapped: false }));
+  s.scale.set((w / 72) * 0.75 * scale, 0.75 * scale, 1);
   return s;
 }
 
-function trophy(text) {
+const ringG = new THREE.TorusGeometry(2.3, 0.13, 12, 56);
+const coreG = new THREE.IcosahedronGeometry(0.2, 1);
+const cubeG = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+const cubeEdgeG = new THREE.EdgesGeometry(cubeG);
+const gemG = new THREE.OctahedronGeometry(1.1, 0);
+
+function commitRing(color) {
   const g = new THREE.Group();
-  const gold = new THREE.MeshStandardMaterial({ color: '#e0b43c', metalness: 0.9, roughness: 0.25 });
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1, 1.4), new THREE.MeshStandardMaterial({ color: '#2f3237' }));
-  plinth.position.y = 0.5;
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 0.7, 12), gold); stem.position.y = 1.35;
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.3, 1.1, 18), gold); cup.position.y = 2.25;
-  for (const x of [-0.85, 0.85]) {
-    const h = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.07, 8, 16), gold); h.position.set(x, 2.3, 0); h.rotation.y = Math.PI / 2; g.add(h);
-  }
-  g.add(plinth, stem, cup);
-  const t = tag(text); t.position.y = 3.6; t.scale.set(3.2, 0.9, 1); g.add(t);
-  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  const mat = new THREE.MeshBasicMaterial({ color, toneMapped: false, transparent: true });
+  const ring = new THREE.Mesh(ringG, mat); ring.position.y = 2.6;
+  const core = new THREE.Mesh(coreG, new THREE.MeshBasicMaterial({ color, transparent: true })); core.position.y = 2.6;
+  g.add(ring, core);
+  g.userData = { ring, core, mats: [mat, core.material] };
+  return g;
+}
+function courseNode(color) {
+  const g = new THREE.Group();
+  const cube = new THREE.Mesh(cubeG, new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(0.35), transparent: true, opacity: 0.8 }));
+  const edge = new THREE.LineSegments(cubeEdgeG, new THREE.LineBasicMaterial({ color, toneMapped: false, transparent: true }));
+  cube.add(edge);
+  cube.position.y = 1.2;
+  g.add(cube);
+  g.userData = { spin: cube, mats: [cube.material, edge.material] };
+  return g;
+}
+function release() {
+  const g = new THREE.Group();
+  const gem = new THREE.Mesh(gemG, new THREE.MeshStandardMaterial({ color: GOLD, emissive: GOLD, emissiveIntensity: 0.9, metalness: 0.9, roughness: 0.2, transparent: true }));
+  gem.position.y = 2.4;
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.05, 8, 48), new THREE.MeshBasicMaterial({ color: GOLD, toneMapped: false, transparent: true }));
+  halo.rotation.x = Math.PI / 2; halo.position.y = 2.4;
+  g.add(gem, halo);
+  g.userData = { spin: gem, halo, mats: [gem.material, halo.material] };
   return g;
 }
 
-// Builds every obstacle on its role's road. Each has a distance `s` and a
-// lateral offset; driving through it (or into it) knocks it over.
+// Particle bursts, pooled
+function burstPool(scene) {
+  const N = 90, pool = [];
+  for (let k = 0; k < 8; k++) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+    const mat = new THREE.PointsMaterial({ size: 0.35, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
+    const pts = new THREE.Points(geo, mat);
+    pts.visible = false; pts.frustumCulled = false;
+    scene.add(pts);
+    pool.push({ pts, vel: new Float32Array(N * 3), t: 99 });
+  }
+  let next = 0;
+  return {
+    fire(pos, color) {
+      const b = pool[next++ % pool.length];
+      const p = b.pts.geometry.attributes.position.array;
+      for (let i = 0; i < N; i++) {
+        p[i * 3] = pos.x; p[i * 3 + 1] = pos.y; p[i * 3 + 2] = pos.z;
+        const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), sp = 4 + Math.random() * 9;
+        b.vel[i * 3] = Math.sin(ph) * Math.cos(th) * sp; b.vel[i * 3 + 1] = Math.abs(Math.cos(ph)) * sp; b.vel[i * 3 + 2] = Math.sin(ph) * Math.sin(th) * sp;
+      }
+      b.pts.material.color.set(color); b.pts.material.opacity = 1; b.pts.visible = true; b.t = 0;
+      b.pts.geometry.attributes.position.needsUpdate = true;
+    },
+    update(dt) {
+      for (const b of pool) {
+        if (b.t > 1.2) { b.pts.visible = false; continue; }
+        b.t += dt;
+        const p = b.pts.geometry.attributes.position.array;
+        for (let i = 0; i < p.length; i++) { p[i] += b.vel[i] * dt; if (i % 3 === 1) b.vel[i] -= 9 * dt; }
+        b.pts.geometry.attributes.position.needsUpdate = true;
+        b.pts.material.opacity = Math.max(0, 1 - b.t / 1.2);
+      }
+    },
+  };
+}
+
+// Builds every collectible on its role's road. Passing through (or into) one captures it.
 export function buildObstacles(scene, road, T) {
   const list = [];
+  const bursts = burstPool(scene);
   T.roles.forEach((r) => {
+    const color = BRANCH[r.id] ?? BRANCH.main;
     r.items.forEach((item, n) => {
       const off = T.offset(r, item.s);
+      const f = road.at(item.s);
       if (item.type === 'gate') {
-        const f = road.at(item.s);
-        const gate = semesterGate(item.sem);
-        gate.position.copy(f.p).addScaledVector(f.n, off); gate.rotation.y = f.heading + Math.PI;
-        scene.add(gate);
-        const k = item.sem.courses.length;
-        const cs = item.s + 8, cf = road.at(cs);
-        item.sem.courses.forEach(([code, name], j) => {
-          const c = cone();
-          const lateral = off + (j - (k - 1) / 2) * Math.min(1.6, (ROAD_W - 2) / Math.max(1, k - 1));
-          c.position.copy(cf.p).addScaledVector(cf.n, lateral);
-          c.add(tag(code));
-          scene.add(c);
-          list.push({ kind: 'course', mesh: c, s: cs, lateral, radius: 0.7, role: r.index, title: code, text: `${code}: ${name}`, term: item.sem.term });
+        const sem = item.sem;
+        const tag = `v${sem.term.split(' ')[1]}-${sem.term.split(' ')[0].toLowerCase()}`;
+        const sign = neonSign([`$ git tag ${tag}`, sem.honors ? `${sem.term} · semester honors` : sem.term], color, 8.5, 2.2);
+        sign.position.copy(f.p).addScaledVector(f.n, off); sign.position.y = 6.4;
+        sign.rotation.y = f.heading + Math.PI;
+        scene.add(sign);
+        const k = sem.courses.length, cs = item.s + 9, cf = road.at(cs);
+        sem.courses.forEach(([code, name], j) => {
+          const node = courseNode(color);
+          const lateral = off + (j - (k - 1) / 2) * Math.min(1.5, (ROAD_W - 2) / Math.max(1, k - 1));
+          node.position.copy(cf.p).addScaledVector(cf.n, lateral);
+          const lbl = tagSprite('', code, color, 0.75); lbl.position.y = 2.3; node.add(lbl);
+          scene.add(node);
+          list.push({ kind: 'course', mesh: node, s: cs, lateral, radius: 0.8, role: r.index, title: code, text: `${code}: ${name}`, term: sem.term, color, hash: hash7(code + sem.term) });
         });
       } else {
-        const f = road.at(item.s);
-        const award = item.type === 'award';
-        const lateral = off + (award ? 0 : n % 2 ? -2.2 : 2.2);
-        const mesh = award ? trophy(item.label) : barricade(item.label);
+        const isRelease = item.type === 'release';
+        const lateral = off + (isRelease ? 0 : n % 2 ? -1.6 : 1.6);
+        const mesh = isRelease ? release() : commitRing(color);
         mesh.position.copy(f.p).addScaledVector(f.n, lateral);
-        mesh.rotation.y = f.heading + Math.PI;
+        mesh.rotation.y = f.heading;
+        const h = hash7(item.text);
+        const lbl = tagSprite(h, item.label, isRelease ? GOLD : color); lbl.position.y = isRelease ? 4.6 : 5.6; mesh.add(lbl);
         scene.add(mesh);
-        list.push({ kind: award ? 'award' : 'feat', mesh, s: item.s, lateral, radius: award ? 1.4 : 2.6, role: r.index, title: item.label, text: item.text });
+        list.push({ kind: isRelease ? (item.community ? 'community' : 'release') : 'commit', mesh, s: item.s, lateral, radius: isRelease ? 1.4 : 2.4, role: r.index, title: item.label, text: item.text, color: isRelease ? GOLD : color, hash: h });
       }
     });
   });
 
   const active = [];
-  const tmp = new THREE.Vector3();
-
-  function knock(o, car, direct) {
-    o.hit = true;
-    o.t = 0;
-    const fwd = tmp.set(Math.sin(car.heading), 0, Math.cos(car.heading));
-    const sp = Math.max(Math.abs(car.speed), 12);
-    const side = (Math.random() - 0.5) * 2;
-    o.vel = new THREE.Vector3(fwd.x * sp * (direct ? 0.9 : 0.35), (direct ? 7 : 4) + Math.random() * 3, fwd.z * sp * (direct ? 0.9 : 0.35));
-    o.vel.x += -fwd.z * side * 4; o.vel.z += fwd.x * side * 4;
-    o.ang = new THREE.Vector3((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 10);
+  function capture(o, car) {
+    o.hit = true; o.t = 0;
     o.mesh.children.filter((c) => c.isSprite).forEach((c) => c.removeFromParent());
+    o.start = o.mesh.position.clone();
+    bursts.fire(o.mesh.position.clone().add(new THREE.Vector3(0, o.kind === 'course' ? 1.2 : 2.5, 0)), o.color);
     active.push(o);
   }
 
-  // car: { x, z, heading, speed, s, prevS, lateral }
   function update(dt, car, t, onHit) {
     for (const o of list) {
       if (o.hit || Math.abs(o.s - car.s) > 8) continue;
       const dist = Math.hypot(o.mesh.position.x - car.x, o.mesh.position.z - car.z);
-      const direct = dist < o.radius + 1.2;
+      const direct = dist < o.radius + 1;
       const passed = car.s > o.s + 0.5 && car.prevS <= o.s + 0.5 && Math.abs(car.lateral - o.lateral) < ROAD_W / 2 + 1.5;
-      if (direct || passed) { knock(o, car, direct); onHit(o, direct); }
+      if (direct || passed) { capture(o, car); onHit(o, direct); }
+    }
+    // idle motion near the car
+    for (const o of list) {
+      if (o.hit || Math.abs(o.s - car.s) > 260) continue;
+      const u = o.mesh.userData;
+      if (u.spin) { u.spin.rotation.y = t * 1.4 + o.s; u.spin.rotation.x = t * 0.6; }
+      if (u.core) u.core.scale.setScalar(1 + Math.sin(t * 4 + o.s) * 0.2);
+      if (u.halo) u.halo.rotation.z = t;
     }
     for (let i = active.length - 1; i >= 0; i--) {
       const o = active[i];
       o.t += dt;
+      const k = Math.min(1, o.t / 0.6);
       const m = o.mesh;
-      o.vel.y -= GRAVITY * dt;
-      m.position.addScaledVector(o.vel, dt);
-      m.rotation.x += o.ang.x * dt; m.rotation.y += o.ang.y * dt; m.rotation.z += o.ang.z * dt;
-      if (m.position.y < 0.1) {
-        m.position.y = 0.1;
-        o.vel.y *= -0.3; o.vel.x *= 0.7; o.vel.z *= 0.7; o.ang.multiplyScalar(0.6);
+      if (o.kind === 'course') { // fly into the car
+        m.position.lerpVectors(o.start, new THREE.Vector3(car.x, 0, car.z), k);
+        m.scale.setScalar(1 - k * 0.9);
+      } else {
+        m.scale.setScalar(1 + k * 1.2);
+        m.position.y = o.start.y + k * 2;
       }
-      if (o.t > 3.5) {
-        m.position.y -= dt * 1.5;
-        if (o.t > 5) { m.removeFromParent(); active.splice(i, 1); }
-      }
+      m.userData.mats.forEach((mt) => { mt.opacity = 1 - k; });
+      if (k >= 1) { m.removeFromParent(); active.splice(i, 1); }
     }
-    const on = Math.sin(t * 8) > 0;
-    for (const o of list) if (!o.hit && o.kind === 'feat' && Math.abs(o.s - car.s) < 300) o.mesh.userData.lamp.emissiveIntensity = on ? 2.2 : 0.2;
+    bursts.update(dt);
   }
 
   return { list, update };

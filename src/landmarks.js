@@ -77,7 +77,7 @@ export function buildLandmark(kind, animate) {
       g.add(box(26.6, 1, 14.6, std({ color: '#d8d0c0' }), 0, 10));
       const win = std({ map: tex(facade({ wall: '#8e4a36', glass: '#2d3640', cols: 6, rows: 2, frame: '#e9e0cf' }), 1, 1) });
       const front = new THREE.Mesh(new THREE.PlaneGeometry(25.6, 9), win); front.position.set(0, 5, 7.02); g.add(front);
-      const s = signBoard(['The Collegian', 'Kedzie Hall'], 10, 2.6); s.position.set(0, 12.8, 7.2); g.add(s);
+      const s = signBoard(['Collegian Media Group'], 10, 2.2); s.position.set(0, 12.8, 7.2); g.add(s);
       const bundles = std({ color: '#e8e4da' });
       for (let i = 0; i < 6; i++) g.add(box(1.4, 0.6, 1, bundles, 9 + (i % 3) * 1.5, Math.floor(i / 3) * 0.6, 9));
       break;
@@ -176,7 +176,7 @@ export function buildLandmark(kind, animate) {
         p.material.opacity = 0.85 * (1 - k);
       }));
       for (let i = 0; i < 3; i++) g.add(box(4, 5, 0.3, std({ color: '#5b6066', metalness: 0.5 }), -12 + i * 6, 0, 10.1));
-      const scr = new THREE.Mesh(new THREE.PlaneGeometry(10, 5.6), new THREE.MeshBasicMaterial({ map: screen(['Line 3 training', 'Scan the QR code to watch']), toneMapped: false }));
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(10, 5.6), new THREE.MeshBasicMaterial({ map: screen(['Factory-floor training', 'QR-code access · offline viewing']), toneMapped: false }));
       scr.position.set(8, 6.5, 10.2); g.add(scr);
       const s = signBoard(['Annovox AI'], 9, 2, { bg: '#28324a' }); s.position.set(-8, 10.5, 10.3); g.add(s);
       const truck = new THREE.Group();

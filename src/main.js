@@ -5,7 +5,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import './style.css';
 import * as data from './data.js';
-import { layout, buildRoad, buildWorld, ROAD_W } from './world.js';
+import { layout, buildRoad, buildWorld, ROAD_W, LANE_GAP } from './world.js';
 import { buildLandmark } from './landmarks.js';
 import { hologram } from './holo.js';
 import { buildCar } from './car.js';
@@ -346,11 +346,11 @@ function start() {
   function roleUnderCar() {
     if (state.s > T.finishS - 10) return T.finish;
     const open = T.roles.filter((r) => state.s >= entryS(r) && state.s <= r.s1);
-    let best = null, bd = ROAD_W / 2 + 3;
+    let best = null, bd = ROAD_W / 2;
     for (const r of open) { const d = Math.abs(state.lateral - laneOff(r, state.s)); if (d < bd) { bd = d; best = r; } }
     if (!best) {
       const main = T.roles.filter((r) => !r.slot && state.s >= entryS(r)).at(-1);
-      if (main && Math.abs(state.lateral) < ROAD_W / 2 + 3) best = main;
+      if (main && Math.abs(state.lateral) < ROAD_W / 2) best = main;
     }
     return best;
   }
@@ -364,7 +364,7 @@ function start() {
     if (!W) return;
     if (mini.width !== W || mini.height !== H) { mini.width = W; mini.height = H; }
     const pad = 12 * dpr, col = (W - pad * 2) / (slots.length - 1);
-    const X = (lat) => pad + (lat / 16 - slots[0]) * col;
+    const X = (lat) => pad + (lat / LANE_GAP - slots[0]) * col;
     const Y = (s) => H - pad - (s / (T.finishS + 60)) * (H - pad * 2);
     mctx.clearRect(0, 0, W, H);
     mctx.lineCap = 'round'; mctx.lineWidth = 2.5 * dpr;
@@ -379,7 +379,7 @@ function start() {
       if (o.kind === 'course') continue;
       mctx.fillStyle = o.hit && !o.skipped ? o.color : '#0a0e18';
       mctx.strokeStyle = o.color; mctx.lineWidth = 1.4 * dpr;
-      mctx.beginPath(); mctx.arc(X(o.kind === 'commit' ? o.lateral - Math.sign(o.lateral - Math.round(o.lateral / 16) * 16) * 1.6 : o.lateral), Y(o.s), 2.4 * dpr, 0, Math.PI * 2); mctx.fill(); mctx.stroke();
+      mctx.beginPath(); mctx.arc(X(o.lateral), Y(o.s), 2.4 * dpr, 0, Math.PI * 2); mctx.fill(); mctx.stroke();
     }
     const cx = X(state.lateral), cy = Y(state.s);
     mctx.fillStyle = '#ffffff'; mctx.shadowColor = '#2ee6b6'; mctx.shadowBlur = 10 * dpr;
@@ -392,7 +392,7 @@ function start() {
     if (cut.active) return;
     const next = ordered.find((r) => entryS(r) > state.s + 5);
     if (next) driveTo(next);
-    else state.auto = { role: null, from: laneRoleNow(), target: T.finishS + 60, s: state.s, lat: state.lateral };
+    else state.auto = { role: null, target: T.finishS + 60, s: state.s, lat: state.lateral };
   }
   // Which road the car is on right now (a branch role, or null for main)
   function laneRoleNow() {
@@ -403,12 +403,8 @@ function start() {
   function driveTo(r) {
     if (cut.active) return;
     const target = entryS(r) + 20;
-    const from = laneRoleNow();
-    const jump = () => placeCar(entryS(r) - (r.slot ? 18 : 30), laneOff(r, entryS(r) - (r.slot ? 18 : 30)));
-    if (target < state.s) { jump(); return; }
-    // Already on the target branch, or its road will merge back before the target: drive there along the roads
-    if (from && from !== r && from.s1 > entryS(r) - (r.slot ? r.taper : 0)) { jump(); return; }
-    state.auto = { role: r, from, target, s: state.s, lat: state.lateral };
+    if (target < state.s) { placeCar(entryS(r) - (r.slot ? 18 : 30), laneOff(r, entryS(r) - (r.slot ? 18 : 30))); return; }
+    state.auto = { role: r, target, s: state.s, lat: state.lateral };
   }
 
   let baseFov = 58;
@@ -506,9 +502,8 @@ function start() {
       const want = THREE.MathUtils.clamp(remaining * 0.7, 8, 36);
       state.speed += (want - state.speed) * Math.min(1, dt * 2);
       A.s = Math.min(A.s + state.speed * dt, road.total - 5);
-      if (A.from && A.s >= A.from.s1) A.from = null;
-      const goalLat = A.from && A.from !== A.role ? T.offset(A.from, A.s) : laneOff(A.role, A.s);
-      A.lat += (goalLat - A.lat) * Math.min(1, dt * 4);
+      const goalLat = laneOff(A.role, A.s);
+      A.lat += (goalLat - A.lat) * Math.min(1, dt * 2.2);
       const p = road.point(A.s, A.lat), q = road.point(A.s + 2, A.lat + (goalLat - A.lat) * 0.3);
       state.heading = Math.atan2(q.p.x - p.p.x, q.p.z - p.p.z);
       state.x = p.p.x; state.z = p.p.z;
@@ -542,10 +537,11 @@ function start() {
     const half = ROAD_W / 2 - 0.95;
     let nearestLane = lanes[0], best = Infinity;
     for (const o of lanes) { const d = Math.abs(state.lateral - o); if (d < best) { best = d; nearestLane = o; } }
+    const lo = Math.min(...lanes) - half, hi = Math.max(...lanes) + half;
     const along = (state.x - near.sample.p.x) * near.sample.t.x + (state.z - near.sample.p.z) * near.sample.t.z;
     let push = 0, pushAlong = 0;
-    if (!state.auto && best > half) {
-      push = nearestLane + THREE.MathUtils.clamp(state.lateral - nearestLane, -half, half) - state.lateral;
+    if (!state.auto && (state.lateral < lo || state.lateral > hi)) {
+      push = THREE.MathUtils.clamp(state.lateral, lo, hi) - state.lateral;
       // slide along the rail: turn the car toward the road direction it is closest to
       const th = near.sample.heading;
       const d0 = Math.atan2(Math.sin(state.heading - th), Math.cos(state.heading - th));
@@ -573,7 +569,7 @@ function start() {
     if (!state.flown && state.role === one && state.s > entryS(one) + 25) startFlight();
     if (!state.finished && state.s > T.finishS + 50) {
       state.finished = true;
-      $('#finish-count').textContent = `You wrote ${state.done.commit} of ${totals.commit} commits, tagged ${state.done.course} of ${totals.course} courses, and shipped ${state.done.release} of ${totals.release} releases. Anything missed is on another branch; the journal lists it.`;
+      $('#finish-count').textContent = `You wrote ${state.done.commit} of ${totals.commit} commits, tagged ${state.done.course} of ${totals.course} courses, and shipped ${state.done.release} of ${totals.release} releases. Anything missed is in another lane; the journal lists it.`;
       $('#finish').hidden = false;
       $('#finish .btn-solid').focus({ preventScroll: true });
     }

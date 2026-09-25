@@ -3,8 +3,8 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 import { label, shield } from './textures.js';
 import { BRANCH } from './theme.js';
 
-export const ROAD_W = 10;
-export const LANE_GAP = 16;       // distance between parallel roads
+export const ROAD_W = 8;          // one lane
+export const LANE_GAP = 8;        // lanes sit side by side, no gap
 const MONTH = 36;                 // road units per month
 const FLAT = 150;                 // flat corridor half-width around the centre line
 
@@ -77,7 +77,7 @@ export function layout({ sections, semesters, finish, community, NOW, TIMELINE_S
     let side = r.slot ? Math.sign(r.slot) : (nearby.filter((o) => o.slot > 0).length <= nearby.filter((o) => o.slot < 0).length ? 1 : -1);
     const outer = Math.max(Math.abs(r.slot), ...nearby.filter((o) => Math.sign(o.slot) === side).map((o) => Math.abs(o.slot)));
     r.side = side;
-    r.landmarkOffset = side * (outer * LANE_GAP + 52);
+    r.landmarkOffset = side * (outer * LANE_GAP + ROAD_W / 2 + 44);
   });
 
   // Hackathons and community: releases on main, by date
@@ -102,7 +102,7 @@ export function buildRoad(length) {
   let x = 0, z = 0;
   for (let d = 0; d <= length + step; d += step) {
     pts.push(new THREE.Vector3(x, 0, z));
-    const h = Math.PI + 0.75 * Math.sin(d / 520) + 0.22 * Math.sin(d / 190 + 1.3);
+    const h = Math.PI + 0.6 * Math.sin(d / 380) + 0.38 * Math.sin(d / 140 + 1.3) + 0.12 * Math.sin(d / 55 + 0.4);
     x += Math.sin(h) * step; z += Math.cos(h) * step;
   }
   const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
@@ -233,71 +233,80 @@ export function buildWorld(scene, road, T) {
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Roads: dark glass surface with glowing edges in the branch colour
-  const surface = new THREE.MeshStandardMaterial({ color: '#0b0e15', roughness: 0.55, metalness: 0.5 });
-  const glow = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
-  const addRoad = (from, to, offFn, colorFn, y = 0) => {
-    scene.add(new THREE.Mesh(laneRibbon(samples, from, to, offFn, ROAD_W, 0.05 + y), surface));
-    for (const e of [-1, 1]) {
-      scene.add(new THREE.Mesh(laneRibbon(samples, from, to, (s) => offFn(s) + e * (ROAD_W / 2 - 0.2), 0.22, 0.08 + y, colorFn), glow));
-    }
-    // dashed centre line
-    const dashes = new THREE.Group();
-    const dashG = new THREE.BoxGeometry(0.14, 0.02, 2.2);
-    const dm = new THREE.MeshBasicMaterial({ color: '#6f82ad', transparent: true, opacity: 0.4 });
-    const list = samples.filter((s) => s.s >= from + 4 && s.s <= to - 4 && s.s % 9 < 1.5);
-    const im = new THREE.InstancedMesh(dashG, dm, list.length);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0);
-    list.forEach((s, i) => {
-      const o = offFn(s.s);
-      q.setFromAxisAngle(Y, s.heading);
-      m.compose(new THREE.Vector3(s.p.x + s.n.x * o, 0.08 + y, s.p.z + s.n.z * o), q, new THREE.Vector3(1, 1, 1));
-      im.setMatrixAt(i, m);
+  // One road that widens into a lane per concurrent role; guardrails only on its outer edges
+  const edgesAt = (s) => { const l = T.lanesAt(s); return [Math.min(...l) - ROAD_W / 2, Math.max(...l) + ROAD_W / 2]; };
+  const strip = (from, to, leftFn, rightFn, y, colorFn) => {
+    const pos = [], col = [], idx = [], c = new THREE.Color();
+    samples.filter((q) => q.s >= from && q.s <= to).forEach((q, i) => {
+      const l = leftFn(q.s), r = rightFn(q.s);
+      pos.push(q.p.x + q.n.x * r, y, q.p.z + q.n.z * r, q.p.x + q.n.x * l, y, q.p.z + q.n.z * l);
+      if (colorFn) { c.set(colorFn(q.s)); col.push(c.r, c.g, c.b, c.r, c.g, c.b); }
+      if (i > 0) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
     });
-    dashes.add(im);
-    scene.add(dashes);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    if (colorFn) g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    g.setIndex(idx); g.computeVertexNormals();
+    return g;
   };
-  addRoad(0, road.total, () => 0, (s) => (s > T.finishS - 20 ? BRANCH.chicago : roleColor(mainRole(s))));
-  T.roles.filter((r) => r.slot).forEach((r, k) => addRoad(r.s0, r.s1, (s) => T.offset(r, s), () => roleColor(r), 0.004 * (k + 1)));
-
-  // Guardrails on every road edge, open wherever another road shares that edge (forks and merges)
+  const mainColor = (s) => (s > T.finishS - 20 ? BRANCH.chicago : roleColor(mainRole(s)));
+  const surface = new THREE.Mesh(strip(0, road.total, (s) => edgesAt(s)[0], (s) => edgesAt(s)[1], 0.05), new THREE.MeshStandardMaterial({ color: '#0b0e15', roughness: 0.55, metalness: 0.5 }));
+  surface.receiveShadow = true;
+  scene.add(surface);
+  // lane tints: each lane washed faintly in its role colour
+  const tint = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.07, depthWrite: false, toneMapped: false });
+  scene.add(new THREE.Mesh(strip(0, road.total, () => -ROAD_W / 2 + 0.3, () => ROAD_W / 2 - 0.3, 0.06, mainColor), tint));
+  T.roles.filter((r) => r.slot).forEach((r) => {
+    const off = (s) => T.offset(r, s);
+    scene.add(new THREE.Mesh(strip(r.s0, r.s1, (s) => off(s) - ROAD_W / 2 + 0.3, (s) => off(s) + ROAD_W / 2 - 0.3, 0.065, () => roleColor(r)), tint));
+  });
+  // glowing outer edge lines
+  const glow = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
+  for (const k of [0, 1]) scene.add(new THREE.Mesh(strip(0, road.total, (s) => edgesAt(s)[k] + (k ? -0.35 : 0.13), (s) => edgesAt(s)[k] + (k ? -0.13 : 0.35), 0.08, mainColor), glow));
+  // dashed lane dividers in each branch's colour
   {
-    const lanes = [{ from: 0, to: road.total, off: () => 0, color: null }, ...T.roles.filter((r) => r.slot).map((r) => ({ from: r.s0, to: r.s1, off: (s) => T.offset(r, s), color: roleColor(r) }))];
-    const covered = (s, e, self) => T.lanesAt(s).some((o) => Math.abs(o - self) > 0.5 && Math.abs(e - o) < ROAD_W / 2 - 0.2);
-    const railPos = [], railCol = [], railIdx = [], postPts = [];
-    const c = new THREE.Color();
-    const pushQuad = (a, b, color) => {
-      const base = railPos.length / 3;
-      for (const [p, y] of [[a, 0.45], [b, 0.45], [a, 0.95], [b, 0.95]]) railPos.push(p.x, y, p.z);
-      c.set(color); for (let k = 0; k < 4; k++) railCol.push(c.r, c.g, c.b);
-      railIdx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
-    };
-    lanes.forEach((L) => {
-      for (const side of [-1, 1]) {
-        let prev = null;
-        for (const smp of samples) {
-          if (smp.s < L.from || smp.s > L.to || smp.i % 2) continue;
-          const self = L.off(smp.s), e = self + side * (ROAD_W / 2 + 0.6);
-          const p = smp.p.clone().addScaledVector(smp.n, e);
-          if (covered(smp.s, e, self)) { prev = null; continue; }
-          const color = L.color ?? (smp.s > T.finishS - 20 ? BRANCH.chicago : roleColor(mainRole(smp.s)));
-          if (prev) pushQuad(prev, p, color);
-          if (smp.i % 8 === 0) postPts.push(p);
-          prev = p;
-        }
-      }
+    const dashG = new THREE.BoxGeometry(0.16, 0.02, 2.4);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), Y = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
+    T.roles.filter((r) => r.slot).forEach((r) => {
+      const list = samples.filter((q2) => q2.s > r.s0 + 6 && q2.s < r.s1 - 6 && q2.s % 8 < 1.5);
+      const im = new THREE.InstancedMesh(dashG, new THREE.MeshBasicMaterial({ color: roleColor(r), toneMapped: false, transparent: true, opacity: 0.8 }), list.length);
+      list.forEach((q2, i) => {
+        const o = T.offset(r, q2.s) - Math.sign(r.slot) * ROAD_W / 2; // boundary toward main
+        q.setFromAxisAngle(Y, q2.heading);
+        m.compose(new THREE.Vector3(q2.p.x + q2.n.x * o, 0.09, q2.p.z + q2.n.z * o), q, one);
+        im.setMatrixAt(i, m);
+      });
+      scene.add(im);
     });
+  }
+  // Guardrails along the outer edges
+  {
+    const railPos = [], railCol = [], railIdx = [], postPts = [], topPos = [], topCol = [];
+    const c = new THREE.Color();
+    for (const k of [0, 1]) {
+      let prev = null;
+      for (const q2 of samples) {
+        if (q2.i % 2) continue;
+        const e = edgesAt(q2.s)[k] + (k ? 0.7 : -0.7);
+        const p = q2.p.clone().addScaledVector(q2.n, e);
+        if (prev) {
+          const base = railPos.length / 3;
+          for (const [pt, y] of [[prev, 0.45], [p, 0.45], [prev, 0.95], [p, 0.95]]) railPos.push(pt.x, y, pt.z);
+          c.set(mainColor(q2.s)); for (let j = 0; j < 4; j++) railCol.push(c.r, c.g, c.b);
+          railIdx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+          topPos.push(prev.x, 0.97, prev.z, p.x, 0.97, p.z); topCol.push(c.r, c.g, c.b, c.r, c.g, c.b);
+        }
+        if (q2.i % 8 === 0) postPts.push(p);
+        prev = p;
+      }
+    }
     const rg = new THREE.BufferGeometry();
     rg.setAttribute('position', new THREE.Float32BufferAttribute(railPos, 3));
     rg.setAttribute('color', new THREE.Float32BufferAttribute(railCol, 3));
-    rg.setIndex(railIdx);
-    rg.computeVertexNormals();
+    rg.setIndex(railIdx); rg.computeVertexNormals();
     scene.add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.8, roughness: 0.35, side: THREE.DoubleSide, emissive: '#ffffff', emissiveIntensity: 0.08 })));
-    // glowing top edge
-    const topPos = [];
-    for (let i = 0; i < railPos.length; i += 12) topPos.push(railPos[i + 6], 0.97, railPos[i + 8], railPos[i + 9], 0.97, railPos[i + 11]);
-    const tg2 = new THREE.BufferGeometry(); tg2.setAttribute('position', new THREE.Float32BufferAttribute(topPos, 3));
-    const topCol = []; for (let i = 0; i < railCol.length; i += 12) topCol.push(railCol[i], railCol[i + 1], railCol[i + 2], railCol[i + 3], railCol[i + 4], railCol[i + 5]);
+    const tg2 = new THREE.BufferGeometry();
+    tg2.setAttribute('position', new THREE.Float32BufferAttribute(topPos, 3));
     tg2.setAttribute('color', new THREE.Float32BufferAttribute(topCol, 3));
     scene.add(new THREE.LineSegments(tg2, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false })));
     const post = new THREE.InstancedMesh(new THREE.BoxGeometry(0.14, 1, 0.14).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: '#39414d', metalness: 0.7, roughness: 0.4 }), postPts.length);
@@ -312,13 +321,13 @@ export function buildWorld(scene, road, T) {
     const sAt = r.slot ? r.s0 + r.taper + 4 : r.s0 + 4;
     const f = road.at(sAt);
     const cmd = r.slot ? `$ git checkout -b ${r.id}` : `$ git switch main  # ${r.id}`;
-    const sign = neonSign([cmd, `${r.company}, ${r.years}`], color, 10.5, 2.8);
+    const sign = neonSign([cmd, `${r.company}, ${r.years}`], color, 7.6, 2.3);
     sign.position.copy(f.p).addScaledVector(f.n, T.offset(r, sAt)); sign.position.y = 7.2;
     sign.rotation.y = f.heading + Math.PI;
-    scene.add(sign, frameFor(sign, color));
+    scene.add(sign);
     if (r.slot && r.end !== 'now') {
       const e = road.at(r.s1 - r.taper * 0.5);
-      const ms = neonSign([`$ git merge ${r.id}`, `${r.company} ended ${r.end.slice(0, 4)}`], color, 9, 2.4);
+      const ms = neonSign([`$ git merge ${r.id}`, `${r.company} ended ${r.end.slice(0, 4)}`], color, 7.2, 2);
       ms.position.copy(e.p).addScaledVector(e.n, T.offset(r, r.s1 - r.taper * 0.5)); ms.position.y = 6.5;
       ms.rotation.y = e.heading + Math.PI;
       scene.add(ms);
@@ -348,8 +357,9 @@ export function buildWorld(scene, road, T) {
   for (let s = 160; s < T.finishS; s += 420) {
     const side = T.activeAt(s).some((r) => r.slot < 0) ? 1 : -1;
     const f = road.at(s);
+    const edge = edgesAt(s)[side > 0 ? 1 : 0];
     const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshBasicMaterial({ map: shieldT, transparent: true, toneMapped: false, side: THREE.DoubleSide }));
-    sh.position.copy(f.p).addScaledVector(f.n, side * (ROAD_W / 2 + 3)); sh.position.y = 3.2;
+    sh.position.copy(f.p).addScaledVector(f.n, edge + side * 3); sh.position.y = 3.2;
     sh.rotation.y = f.heading + Math.PI;
     const east = neonSign(['I-70 EAST'], '#dbe7ff', 2.6, 0.7);
     east.position.copy(sh.position); east.position.y = 4.8; east.rotation.copy(sh.rotation);

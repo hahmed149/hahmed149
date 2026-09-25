@@ -23,9 +23,9 @@ function tagSprite(hash, text, color, scale = 1) {
   return s;
 }
 
-const ringG = new THREE.TorusGeometry(2.3, 0.13, 12, 56);
+const ringG = new THREE.TorusGeometry(2.1, 0.12, 12, 56);
 const coreG = new THREE.IcosahedronGeometry(0.2, 1);
-const cubeG = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+const cubeG = new THREE.BoxGeometry(0.55, 0.55, 0.55);
 const cubeEdgeG = new THREE.EdgesGeometry(cubeG);
 const gemG = new THREE.OctahedronGeometry(1.1, 0);
 
@@ -109,22 +109,22 @@ export function buildObstacles(scene, road, T) {
       if (item.type === 'gate') {
         const sem = item.sem;
         const tag = `v${sem.term.split(' ')[1]}-${sem.term.split(' ')[0].toLowerCase()}`;
-        const sign = neonSign([`$ git tag ${tag}`, sem.honors ? `${sem.term} · semester honors` : sem.term], color, 8.5, 2.2);
+        const sign = neonSign([`$ git tag ${tag}`, sem.honors ? `${sem.term} · semester honors` : sem.term], color, 7.4, 2);
         sign.position.copy(f.p).addScaledVector(f.n, off); sign.position.y = 6.4;
         sign.rotation.y = f.heading + Math.PI;
         scene.add(sign);
         const k = sem.courses.length, cs = item.s + 9, cf = road.at(cs);
         sem.courses.forEach(([code, name], j) => {
           const node = courseNode(color);
-          const lateral = off + (j - (k - 1) / 2) * Math.min(1.5, (ROAD_W - 2) / Math.max(1, k - 1));
+          const lateral = off + (j - (k - 1) / 2) * Math.min(1.15, (ROAD_W - 1.6) / Math.max(1, k - 1));
           node.position.copy(cf.p).addScaledVector(cf.n, lateral);
           const lbl = tagSprite('', code, color, 0.75); lbl.position.y = 2.3; node.add(lbl);
           scene.add(node);
-          list.push({ kind: 'course', mesh: node, s: cs, lateral, radius: 0.8, role: r.index, title: code, text: `${code}: ${name}`, term: sem.term, color, hash: hash7(code + sem.term) });
+          list.push({ kind: 'course', mesh: node, s: cs, lateral, laneOff: off, radius: 0.8, role: r.index, title: code, text: `${code}: ${name}`, term: sem.term, color, hash: hash7(code + sem.term) });
         });
       } else {
         const isRelease = item.type === 'release';
-        const lateral = off + (isRelease ? 0 : n % 2 ? -1.6 : 1.6);
+        const lateral = off;
         const mesh = isRelease ? release() : commitRing(color);
         mesh.position.copy(f.p).addScaledVector(f.n, lateral);
         mesh.rotation.y = f.heading;
@@ -150,7 +150,7 @@ export function buildObstacles(scene, road, T) {
       if (o.hit || Math.abs(o.s - car.s) > 8) continue;
       const dist = Math.hypot(o.mesh.position.x - car.x, o.mesh.position.z - car.z);
       const direct = dist < o.radius + 1;
-      const passed = car.s > o.s + 0.5 && car.prevS <= o.s + 0.5 && Math.abs(car.lateral - o.lateral) < ROAD_W / 2 + 1.5;
+      const passed = car.s > o.s + 0.5 && car.prevS <= o.s + 0.5 && Math.abs(car.lateral - (o.laneOff ?? o.lateral)) < ROAD_W / 2;
       if (direct || passed) { capture(o, car); onHit(o, direct); }
     }
     // idle motion near the car

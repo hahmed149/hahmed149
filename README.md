@@ -2,7 +2,7 @@
 
 Hamza Ahmed's career as a drivable git graph, built with three.js and Vite.
 
-- I-70 is `main`. Jobs that overlapped branch off as parallel roads at their real start date and merge back at their end.
+- I-70 is `main`. Jobs that overlapped open up as extra lanes at their real start date and merge away at their end; change lanes to switch jobs.
 - Every accomplishment is a commit you capture by driving through it; K-State courses are nodes behind semester tags; awards are gold releases.
 - At OneImaging you fly to its Miami HQ.
 

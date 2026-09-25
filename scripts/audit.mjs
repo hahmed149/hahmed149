@@ -57,15 +57,8 @@ for (let s = 0; s < T.finishS; s += 3) {
   const act = T.activeAt(s);
   const slots = act.map((r) => r.slot);
   if (new Set(slots).size !== slots.length) E(`two branches share a slot at s=${s}`);
-  const offs = [0, ...act.map((r) => T.offset(r, s))].sort((a, b) => a - b);
-  for (let i = 1; i < offs.length; i++) {
-    const gap = offs[i] - offs[i - 1];
-    // near-zero gaps only allowed while a branch is merging in/out of its neighbour
-    if (gap > 0.5 && gap < ROAD_W + 2) {
-      const merging = act.some((r) => (s - r.s0 < r.taper) || (r.s1 - s < r.taper));
-      if (!merging) E(`roads closer than ${ROAD_W + 2} at s=${s}: gap ${gap.toFixed(1)}`);
-    }
-  }
+  // lanes must be contiguous: every active branch lane touches main or another active lane
+  act.forEach((r) => { if (Math.abs(r.slot) > 1 && !act.some((o) => o.slot === r.slot - Math.sign(r.slot))) Wn(`${r.id} lane at s=${s} has no neighbour between it and main`); });
 }
 // landmarks clear of roads and each other
 const lms = [...T.roles, T.finish].map((r) => ({ id: r.id, s: r.landmarkS, off: r.landmarkOffset }));

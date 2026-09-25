@@ -260,20 +260,50 @@ export function buildWorld(scene, road, T) {
   addRoad(0, road.total, () => 0, (s) => (s > T.finishS - 20 ? BRANCH.chicago : roleColor(mainRole(s))));
   T.roles.filter((r) => r.slot).forEach((r, k) => addRoad(r.s0, r.s1, (s) => T.offset(r, s), () => roleColor(r), 0.004 * (k + 1)));
 
-  // Glowing bollards along the main road edges
+  // Guardrails on every road edge, open wherever another road shares that edge (forks and merges)
   {
-    const list = samples.filter((s) => s.s % 24 < 1.5);
-    const g = new THREE.CylinderGeometry(0.12, 0.16, 0.9, 8).translate(0, 0.45, 0);
-    const mat = new THREE.MeshBasicMaterial({ color: '#6d86c9' });
-    const pts = [];
-    list.forEach((s) => [-1, 1].forEach((side) => {
-      if (T.activeAt(s.s).some((r) => Math.sign(r.slot) === side && Math.abs(T.offset(r, s.s)) > 3)) return;
-      pts.push(s.p.clone().addScaledVector(s.n, side * (ROAD_W / 2 + 1.2)));
-    }));
-    const im = new THREE.InstancedMesh(g, mat, pts.length);
+    const lanes = [{ from: 0, to: road.total, off: () => 0, color: null }, ...T.roles.filter((r) => r.slot).map((r) => ({ from: r.s0, to: r.s1, off: (s) => T.offset(r, s), color: roleColor(r) }))];
+    const covered = (s, e, self) => T.lanesAt(s).some((o) => Math.abs(o - self) > 0.5 && Math.abs(e - o) < ROAD_W / 2 - 0.2);
+    const railPos = [], railCol = [], railIdx = [], postPts = [];
+    const c = new THREE.Color();
+    const pushQuad = (a, b, color) => {
+      const base = railPos.length / 3;
+      for (const [p, y] of [[a, 0.45], [b, 0.45], [a, 0.95], [b, 0.95]]) railPos.push(p.x, y, p.z);
+      c.set(color); for (let k = 0; k < 4; k++) railCol.push(c.r, c.g, c.b);
+      railIdx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+    };
+    lanes.forEach((L) => {
+      for (const side of [-1, 1]) {
+        let prev = null;
+        for (const smp of samples) {
+          if (smp.s < L.from || smp.s > L.to || smp.i % 2) continue;
+          const self = L.off(smp.s), e = self + side * (ROAD_W / 2 + 0.6);
+          const p = smp.p.clone().addScaledVector(smp.n, e);
+          if (covered(smp.s, e, self)) { prev = null; continue; }
+          const color = L.color ?? (smp.s > T.finishS - 20 ? BRANCH.chicago : roleColor(mainRole(smp.s)));
+          if (prev) pushQuad(prev, p, color);
+          if (smp.i % 8 === 0) postPts.push(p);
+          prev = p;
+        }
+      }
+    });
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.Float32BufferAttribute(railPos, 3));
+    rg.setAttribute('color', new THREE.Float32BufferAttribute(railCol, 3));
+    rg.setIndex(railIdx);
+    rg.computeVertexNormals();
+    scene.add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.8, roughness: 0.35, side: THREE.DoubleSide, emissive: '#ffffff', emissiveIntensity: 0.08 })));
+    // glowing top edge
+    const topPos = [];
+    for (let i = 0; i < railPos.length; i += 12) topPos.push(railPos[i + 6], 0.97, railPos[i + 8], railPos[i + 9], 0.97, railPos[i + 11]);
+    const tg2 = new THREE.BufferGeometry(); tg2.setAttribute('position', new THREE.Float32BufferAttribute(topPos, 3));
+    const topCol = []; for (let i = 0; i < railCol.length; i += 12) topCol.push(railCol[i], railCol[i + 1], railCol[i + 2], railCol[i + 3], railCol[i + 4], railCol[i + 5]);
+    tg2.setAttribute('color', new THREE.Float32BufferAttribute(topCol, 3));
+    scene.add(new THREE.LineSegments(tg2, new THREE.LineBasicMaterial({ vertexColors: true, toneMapped: false })));
+    const post = new THREE.InstancedMesh(new THREE.BoxGeometry(0.14, 1, 0.14).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: '#39414d', metalness: 0.7, roughness: 0.4 }), postPts.length);
     const m = new THREE.Matrix4();
-    pts.forEach((p, i) => { m.makeTranslation(p.x, 0, p.z); im.setMatrixAt(i, m); });
-    scene.add(im);
+    postPts.forEach((p, i) => { m.makeTranslation(p.x, 0, p.z); post.setMatrixAt(i, m); });
+    scene.add(post);
   }
 
   // Branch signs: `git checkout -b` where a branch starts, `git merge` where it ends

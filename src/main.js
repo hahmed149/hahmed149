@@ -392,13 +392,23 @@ function start() {
     if (cut.active) return;
     const next = ordered.find((r) => entryS(r) > state.s + 5);
     if (next) driveTo(next);
-    else state.auto = { role: null, target: T.finishS + 60, s: state.s, lat: state.lateral };
+    else state.auto = { role: null, from: laneRoleNow(), target: T.finishS + 60, s: state.s, lat: state.lateral };
+  }
+  // Which road the car is on right now (a branch role, or null for main)
+  function laneRoleNow() {
+    let best = null, bd = 3;
+    for (const r of T.activeAt(state.s)) { const d = Math.abs(state.lateral - T.offset(r, state.s)); if (d < bd) { bd = d; best = r; } }
+    return best && Math.abs(T.offset(best, state.s)) > 1 ? best : null;
   }
   function driveTo(r) {
     if (cut.active) return;
     const target = entryS(r) + 20;
-    if (target < state.s) { placeCar(entryS(r) - (r.slot ? 18 : 30), laneOff(r, entryS(r) - (r.slot ? 18 : 30))); return; }
-    state.auto = { role: r, target, s: state.s, lat: state.lateral };
+    const from = laneRoleNow();
+    const jump = () => placeCar(entryS(r) - (r.slot ? 18 : 30), laneOff(r, entryS(r) - (r.slot ? 18 : 30)));
+    if (target < state.s) { jump(); return; }
+    // Already on the target branch, or its road will merge back before the target: drive there along the roads
+    if (from && from !== r && from.s1 > entryS(r) - (r.slot ? r.taper : 0)) { jump(); return; }
+    state.auto = { role: r, from, target, s: state.s, lat: state.lateral };
   }
 
   let baseFov = 58;
@@ -442,8 +452,7 @@ function start() {
 
       // Chase camera locked behind the car
       const dist = 9 + Math.abs(state.speed) * 0.08;
-      const back = state.speed < -2 ? -1 : 1;
-      camGoal.set(state.x - Math.sin(state.heading) * dist * back, 3.4 + Math.abs(state.speed) * 0.03, state.z - Math.cos(state.heading) * dist * back);
+      camGoal.set(state.x - Math.sin(state.heading) * dist, 3.4 + Math.abs(state.speed) * 0.03, state.z - Math.cos(state.heading) * dist);
       camPos.lerp(camGoal, reduceMotion ? 1 : 1 - Math.pow(0.001, dt));
       camera.position.copy(camPos);
       if (state.shake > 0 && !reduceMotion) { camera.position.x += (Math.random() - 0.5) * state.shake; camera.position.y += (Math.random() - 0.5) * state.shake; state.shake = Math.max(0, state.shake - dt); }
@@ -497,8 +506,9 @@ function start() {
       const want = THREE.MathUtils.clamp(remaining * 0.7, 8, 36);
       state.speed += (want - state.speed) * Math.min(1, dt * 2);
       A.s = Math.min(A.s + state.speed * dt, road.total - 5);
-      const goalLat = laneOff(A.role, A.s);
-      A.lat += (goalLat - A.lat) * Math.min(1, dt * 1.6);
+      if (A.from && A.s >= A.from.s1) A.from = null;
+      const goalLat = A.from && A.from !== A.role ? T.offset(A.from, A.s) : laneOff(A.role, A.s);
+      A.lat += (goalLat - A.lat) * Math.min(1, dt * 4);
       const p = road.point(A.s, A.lat), q = road.point(A.s + 2, A.lat + (goalLat - A.lat) * 0.3);
       state.heading = Math.atan2(q.p.x - p.p.x, q.p.z - p.p.z);
       state.x = p.p.x; state.z = p.p.z;
@@ -511,11 +521,11 @@ function start() {
       state.braking = down && state.speed > 0.5;
       if (up && !down) state.speed += (state.speed < 0 ? 40 : 22 - state.speed * 0.25) * dt * throttle;
       else if (down && up) state.speed = Math.max(0, state.speed - 40 * dt);
-      else if (down) state.speed -= (state.speed > 0 ? 40 : 12) * dt;
+      else if (down) state.speed -= (state.speed > 0 ? 40 : 16) * dt;
       else state.speed *= Math.pow(onRoad ? 0.7 : 0.3, dt);
       if (jy < 0 && state.speed > max * throttle + 2) state.speed += (max * throttle - state.speed) * Math.min(1, dt * 1.5);
       if (state.speed > max) state.speed += (max - state.speed) * Math.min(1, dt * 3);
-      state.speed = Math.max(state.speed, -10);
+      state.speed = Math.max(state.speed, -14);
       if (Math.abs(state.speed) < 0.1 && !up && !down) state.speed = 0;
       const steerIn = THREE.MathUtils.clamp((left ? 1 : 0) - (right ? 1 : 0) - jx * 1.1, -1, 1);
       state.steer += (steerIn - state.steer) * Math.min(1, dt * 8);
@@ -527,22 +537,36 @@ function start() {
     let near = road.nearest(state);
     state.s = near.sample.s;
     state.lateral = (state.x - near.sample.p.x) * near.sample.n.x + (state.z - near.sample.p.z) * near.sample.n.z;
-    // Stay inside the corridor and don't run off either end of the road
+    // Guardrails: stay on a road surface; scrape along the rail if you hit it
     const lanes = T.lanesAt(state.s);
-    const lo = Math.min(...lanes) - 22, hi = Math.max(...lanes) + 22;
+    const half = ROAD_W / 2 - 0.95;
+    let nearestLane = lanes[0], best = Infinity;
+    for (const o of lanes) { const d = Math.abs(state.lateral - o); if (d < best) { best = d; nearestLane = o; } }
     const along = (state.x - near.sample.p.x) * near.sample.t.x + (state.z - near.sample.p.z) * near.sample.t.z;
     let push = 0, pushAlong = 0;
-    if (state.lateral < lo) push = lo - state.lateral; else if (state.lateral > hi) push = hi - state.lateral;
+    if (!state.auto && best > half) {
+      push = nearestLane + THREE.MathUtils.clamp(state.lateral - nearestLane, -half, half) - state.lateral;
+      // slide along the rail: turn the car toward the road direction it is closest to
+      const th = near.sample.heading;
+      const d0 = Math.atan2(Math.sin(state.heading - th), Math.cos(state.heading - th));
+      const target = Math.abs(d0) < Math.PI / 2 ? th : th + Math.PI;
+      const d1 = Math.atan2(Math.sin(state.heading - target), Math.cos(state.heading - target));
+      state.heading = target + d1 * 0.8;
+      state.speed *= Math.pow(0.35, dt);
+      if (Math.abs(push) > 0.05) state.shake = Math.max(state.shake, Math.min(0.12, Math.abs(state.speed) * 0.004));
+    }
     if (near.sample.i === 0 && along < -2) pushAlong = -2 - along;
     if (near.sample.s > road.total - 3 && along > 2) pushAlong = 2 - along;
     if (push || pushAlong) {
       state.x += near.sample.n.x * push + near.sample.t.x * pushAlong;
       state.z += near.sample.n.z * push + near.sample.t.z * pushAlong;
-      state.speed *= pushAlong ? 0 : 0.9;
+      if (pushAlong) state.speed = 0;
       near = road.nearest(state);
       state.s = near.sample.s;
       state.lateral = (state.x - near.sample.p.x) * near.sample.n.x + (state.z - near.sample.p.z) * near.sample.n.z;
     }
+    // Safety net: if the car is ever far off every road (a bad teleport, a glitch), put it back on the nearest one
+    if (Math.min(...T.lanesAt(state.s).map((o) => Math.abs(state.lateral - o))) > ROAD_W) placeCar(state.s, nearestLane);
 
     const r = roleUnderCar();
     if (r && r !== state.role) { state.role = r; showRole(r); }

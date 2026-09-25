@@ -595,6 +595,33 @@ function renderList() {
     ...semesters.map((sem) => el('p', { className: 'list-courses' }, el('strong', { textContent: `${sem.term}${sem.honors ? ' (semester honors)' : ''}: ` }), sem.courses.map(([c, n]) => `${c} ${n}`).join(', ')))));
   body.append(el('section', {}, el('h3', { textContent: 'Skills' }),
     el('dl', { className: 'list-skills' }, ...skills.flatMap(([k, v]) => [el('dt', { textContent: k }), el('dd', { textContent: v })]))));
-  $('#contact').href = `mailto:${person.email}`;
   $('#linkedin').href = person.linkedin;
+  wireMail();
+}
+
+// Email panel: works without a desktop mail app (copy, Gmail, Outlook, or mailto)
+function wireMail() {
+  const to = person.email, subj = encodeURIComponent('Hello from hahmed.dev');
+  $('#mail-addr').textContent = to;
+  $('#mail-gmail').href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${subj}`;
+  $('#mail-outlook').href = `https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(to)}&subject=${subj}`;
+  $('#mail-app').href = `mailto:${to}?subject=${subj}`;
+  const panel = $('#mail');
+  const open = (e) => { e?.stopPropagation(); panel.hidden = false; $('#mail-copy').focus({ preventScroll: true }); };
+  const close = () => { panel.hidden = true; };
+  $('#contact').addEventListener('click', (e) => (panel.hidden ? open(e) : close()));
+  document.querySelectorAll('.mail-open').forEach((b) => b.addEventListener('click', (e) => { $('#finish').hidden = true; open(e); }));
+  $('#mail-close').addEventListener('click', close);
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) close(); });
+  document.addEventListener('pointerdown', (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== $('#contact')) close(); });
+  $('#mail-copy').addEventListener('click', async () => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(to); ok = true; } catch {
+      const r = document.createRange(); r.selectNodeContents($('#mail-addr'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
+    }
+    $('#mail-copy').textContent = ok ? 'Copied' : 'Select and copy';
+    setTimeout(() => { $('#mail-copy').textContent = 'Copy'; }, 2000);
+  });
 }

@@ -193,3 +193,15 @@ dialog#list::backdrop { background: rgba(2, 4, 8, 0.6); }
   #caption { font-size: 14px; bottom: 70px; }
 }
 @media (prefers-reduced-motion: reduce) { #card.in { animation: none; } .cursor { animation: none; } }
+
+/* Email panel */
+#mail {
+  position: fixed; top: 60px; right: 16px; z-index: 12; width: min(340px, calc(100vw - 32px)); padding: 14px 16px 12px;
+  border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 12px; background: rgba(8, 12, 22, 0.96); backdrop-filter: blur(10px);
+}
+.mail-label { margin: 0 0 8px; font-weight: 800; font-size: 15px; }
+.mail-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+#mail-addr { font-size: 13px; overflow-wrap: anywhere; }
+.mail-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.mail-x { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--dim); font-size: 22px; cursor: pointer; }
+.mail-x:hover { color: var(--text); }

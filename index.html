@@ -14,8 +14,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-3sChXhXN.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DDH7eUrs.css">
+    <script type="module" crossorigin src="/assets/index-BhHw-bW5.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Dg0-Mhpd.css">
   </head>
   <body>
     <canvas id="scene" aria-hidden="true"></canvas>
@@ -37,7 +37,7 @@
       <button id="journal-btn" class="btn" aria-expanded="false" aria-controls="journal">Journal</button>
       <button id="open-list" class="btn">Read as a list</button>
       <a id="linkedin" class="btn" href="#" rel="me noopener" target="_blank">LinkedIn</a>
-      <a id="contact" class="btn btn-solid" href="#">Email me</a>
+      <button id="contact" class="btn btn-solid" aria-haspopup="dialog" aria-controls="mail">Email me</button>
     </nav>
 
     <aside id="stats">
@@ -102,12 +102,23 @@
         <p id="finish-count"></p>
         <p>Thanks for driving. I'm always up for talking about AI agents, healthcare software, and hard engineering problems.</p>
         <div class="finish-actions">
-          <a class="btn btn-solid" href="mailto:hahmed149@outlook.com">Email me</a>
+          <button class="btn btn-solid mail-open" aria-haspopup="dialog" aria-controls="mail">Email me</button>
           <a class="btn" href="https://www.linkedin.com/in/hahmed149/" rel="me noopener" target="_blank">LinkedIn</a>
           <button id="finish-journal" class="btn">See what I missed</button>
           <button id="finish-close" class="btn">Keep driving</button>
         </div>
       </div>
+    </div>
+
+    <div id="mail" hidden role="dialog" aria-labelledby="mail-title">
+      <p id="mail-title" class="mail-label">Email Hamza</p>
+      <div class="mail-row"><code id="mail-addr"></code><button id="mail-copy" class="btn">Copy</button></div>
+      <div class="mail-actions">
+        <a id="mail-gmail" class="btn" target="_blank" rel="noopener">Gmail</a>
+        <a id="mail-outlook" class="btn" target="_blank" rel="noopener">Outlook</a>
+        <a id="mail-app" class="btn">Mail app</a>
+      </div>
+      <button id="mail-close" class="mail-x" aria-label="Close">×</button>
     </div>
 
     <dialog id="list" aria-labelledby="list-title">

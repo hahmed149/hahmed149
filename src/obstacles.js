@@ -59,13 +59,23 @@ function release() {
   return g;
 }
 
+let _dot;
+function dot() {
+  if (_dot) return _dot;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.4, 'rgba(255,255,255,0.6)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
+  return (_dot = new THREE.CanvasTexture(c));
+}
+
 // Particle bursts, pooled
 function burstPool(scene) {
   const N = 90, pool = [];
   for (let k = 0; k < 8; k++) {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
-    const mat = new THREE.PointsMaterial({ size: 0.35, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
+    const mat = new THREE.PointsMaterial({ size: 0.16, map: dot(), alphaTest: 0.01, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending });
     const pts = new THREE.Points(geo, mat);
     pts.visible = false; pts.frustumCulled = false;
     scene.add(pts);
@@ -78,7 +88,7 @@ function burstPool(scene) {
       const p = b.pts.geometry.attributes.position.array;
       for (let i = 0; i < N; i++) {
         p[i * 3] = pos.x; p[i * 3 + 1] = pos.y; p[i * 3 + 2] = pos.z;
-        const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), sp = 4 + Math.random() * 9;
+        const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1), sp = 2 + Math.random() * 5;
         b.vel[i * 3] = Math.sin(ph) * Math.cos(th) * sp; b.vel[i * 3 + 1] = Math.abs(Math.cos(ph)) * sp; b.vel[i * 3 + 2] = Math.sin(ph) * Math.sin(th) * sp;
       }
       b.pts.material.color.set(color); b.pts.material.opacity = 1; b.pts.visible = true; b.t = 0;
@@ -164,14 +174,14 @@ export function buildObstacles(scene, road, T) {
     for (let i = active.length - 1; i >= 0; i--) {
       const o = active[i];
       o.t += dt;
-      const k = Math.min(1, o.t / 0.6);
+      const k = Math.min(1, o.t / (o.kind === 'course' ? 0.5 : 0.32));
       const m = o.mesh;
       if (o.kind === 'course') { // fly into the car
         m.position.lerpVectors(o.start, new THREE.Vector3(car.x, 0, car.z), k);
         m.scale.setScalar(1 - k * 0.9);
       } else {
-        m.scale.setScalar(1 + k * 1.2);
-        m.position.y = o.start.y + k * 2;
+        m.scale.setScalar(1 + k * 0.35);
+        m.position.y = o.start.y + k * 1.2;
       }
       m.userData.mats.forEach((mt) => { mt.opacity = 1 - k; });
       if (k >= 1) { m.removeFromParent(); active.splice(i, 1); }

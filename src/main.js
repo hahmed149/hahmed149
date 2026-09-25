@@ -32,7 +32,7 @@ if (!gl) {
   $('#nogl-open').addEventListener('click', () => $('#list').showModal());
   $('#list').showModal();
 } else {
-  Promise.all([document.fonts.load('800 64px Overpass'), document.fonts.load('700 40px "JetBrains Mono"')]).finally(() => requestAnimationFrame(start));
+  Promise.all([document.fonts.load('800 64px Overpass'), document.fonts.load('700 40px "JetBrains Mono"')]).finally(() => setTimeout(start, 0));
 }
 
 function start() {
@@ -202,15 +202,33 @@ function start() {
     if (k === '/' || k === '`') { e.preventDefault(); $('#cmd').focus(); }
   });
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-  addEventListener('blur', () => { keys.clear(); document.querySelectorAll('.pad-btn.down').forEach((b) => b.classList.remove('down')); });
+  addEventListener('blur', () => keys.clear());
   document.addEventListener('visibilitychange', () => { if (document.hidden) { keys.clear(); audio.pause(); } else audio.resume(); });
-  document.querySelectorAll('[data-key]').forEach((btn) => {
-    const k = btn.dataset.key;
-    const on = (e) => { e.preventDefault(); if (cut.active) return; keys.add(k); state.auto = null; btn.classList.add('down'); };
-    const off = () => { keys.delete(k); btn.classList.remove('down'); };
-    btn.addEventListener('pointerdown', on);
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, off));
-  });
+  // One-thumb joystick: appears where the thumb lands, analog steer and throttle
+  const joy = { x: 0, y: 0, id: null, ox: 0, oy: 0 };
+  {
+    const zone = $('#stick-zone'), stick = $('#stick'), knob = $('#knob'), R = 56;
+    const release = () => { joy.id = null; joy.x = joy.y = 0; stick.classList.remove('on'); knob.style.transform = ''; };
+    zone.addEventListener('pointerdown', (e) => {
+      if (cut.active || joy.id !== null) return;
+      joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY;
+      try { zone.setPointerCapture(e.pointerId); } catch { /* synthetic or already-released pointer */ }
+      stick.style.left = `${e.clientX}px`; stick.style.top = `${e.clientY - zone.getBoundingClientRect().top}px`;
+      stick.classList.add('on'); state.auto = null;
+      $('#stick-hint').classList.add('gone');
+      e.preventDefault();
+    });
+    zone.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== joy.id) return;
+      let dx = e.clientX - joy.ox, dy = e.clientY - joy.oy;
+      const len = Math.hypot(dx, dy);
+      if (len > R) { dx *= R / len; dy *= R / len; }
+      joy.x = dx / R; joy.y = dy / R;
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => zone.addEventListener(ev, (e) => { if (e.pointerId === joy.id) release(); }));
+    addEventListener('blur', release);
+  }
   addEventListener('hashchange', () => { const r = T.roles.find((x) => x.id === hashId()); if (r) driveTo(r); });
 
   // ---------- HUD ----------
@@ -464,10 +482,13 @@ function start() {
   });
 
   function step(dt) {
-    const up = keys.has('w') || keys.has('arrowup');
-    const down = keys.has('s') || keys.has('arrowdown');
+    const dead = (v) => (Math.abs(v) < 0.18 ? 0 : (v - Math.sign(v) * 0.18) / 0.82);
+    const jx = dead(joy.x), jy = dead(joy.y);
+    const up = keys.has('w') || keys.has('arrowup') || jy < 0;
+    const down = keys.has('s') || keys.has('arrowdown') || jy > 0.35;
     const left = keys.has('a') || keys.has('arrowleft');
     const right = keys.has('d') || keys.has('arrowright');
+    const throttle = jy < 0 ? Math.min(1, -jy * 1.15) : 1;
     state.prevS = state.s;
 
     if (state.auto) {
@@ -488,14 +509,15 @@ function start() {
       const onRoad = lanes.some((o) => Math.abs(state.lateral - o) < ROAD_W / 2 + 1.5);
       const max = onRoad ? 42 : 16;
       state.braking = down && state.speed > 0.5;
-      if (up && !down) state.speed += (state.speed < 0 ? 40 : 22 - state.speed * 0.25) * dt;
+      if (up && !down) state.speed += (state.speed < 0 ? 40 : 22 - state.speed * 0.25) * dt * throttle;
       else if (down && up) state.speed = Math.max(0, state.speed - 40 * dt);
       else if (down) state.speed -= (state.speed > 0 ? 40 : 12) * dt;
       else state.speed *= Math.pow(onRoad ? 0.7 : 0.3, dt);
+      if (jy < 0 && state.speed > max * throttle + 2) state.speed += (max * throttle - state.speed) * Math.min(1, dt * 1.5);
       if (state.speed > max) state.speed += (max - state.speed) * Math.min(1, dt * 3);
       state.speed = Math.max(state.speed, -10);
       if (Math.abs(state.speed) < 0.1 && !up && !down) state.speed = 0;
-      const steerIn = (left ? 1 : 0) - (right ? 1 : 0);
+      const steerIn = THREE.MathUtils.clamp((left ? 1 : 0) - (right ? 1 : 0) - jx * 1.1, -1, 1);
       state.steer += (steerIn - state.steer) * Math.min(1, dt * 8);
       const grip = Math.min(1, Math.abs(state.speed) / 6) * (1 - Math.min(Math.abs(state.speed), 42) / 100);
       state.heading += state.steer * 2.0 * dt * grip * Math.sign(state.speed || 1);
